@@ -74,16 +74,111 @@
             jquery: 'http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.js'
         },
         window = this,
-        unsafeWindow = window.unsafeWindow,
-        _ = unsafeWindow.console.log,
+        unsafeWindow = window.unsafeWindow || {},
+        //_ = unsafeWindow.console && unsafeWindow.console.log ? unsafeWindow.console.log : function(){},
         GM_xmlhttpRequest = window.GM_xmlhttpRequest,
         jQuery = window.jQuery,
-        cache;
+        _, cache, yqlProxy;
+        
+        
+    // DEPENDENCIES
+    
+    /*
+    * Console
+    *   github.com/premasagar/mishmash/tree/master/console/
+    */
+    _
+
+    = (function(){
+        var
+            window = this,
+            ua = window.navigator.userAgent,
+            console = window.console,
+            opera = window.opera,
+            debug;
+        
+        // Doesn't support console API
+        if (!console){
+            // Opera 
+            return (opera && opera.postError) ?
+                 function(){
+                     var i, argLen, log = opera.postError, args = arguments, arg, subArgs, prop;
+                     log(args);
+                     
+                     argLen = args.length;
+	                 for (i=0; i < argLen; i++){
+	                     arg = args[i];
+	                     if (typeof arg === 'object' && arg !== null){
+	                        subArgs = [];
+	                        for (prop in arg){
+	                            try {
+	                                if (arg.hasOwnProperty(prop)){
+	                                    subArgs.push(prop + ': ' + arg[prop]);
+	                                }
+	                            }
+	                            catch(e){}
+	                        }
+	                        log('----subArgs: ' + subArgs);
+	                     }
+	                 }
+                 } :
+                 function(){};
+        }
+        else {
+            debug = console.debug;
+            
+            // WebKit complains if console's debug function is called on its own
+            if (/webkit/i.test(ua)){
+                return function(){
+                    var i = 0,
+                        args = arguments,
+                        len = args.length,
+                        arr = [];
+                    
+                    if (len === 1){
+                        console.debug(args[i]);
+                    }
+                    else if (len > 1){
+                        for (; i < len; i++){
+                            arr.push(args[i]);
+                        }
+                        console.debug(arr);
+                    }
+                };
+            }
+            
+            return debug ? // FF Firebug
+	            debug :
+	            function(){
+		            var i, argLen, log = console.log, args = arguments, indent = '';
+		            if (log){ // WebKit
+			            if (typeof log.apply === 'function'){
+				            log.apply(console, args);
+			            }
+			            else { // IE8
+				            argLen = args.length;
+				            for (i=0; i < argLen; i++){
+					            log(indent + args[i]);
+                                indent = '---- ';
+				            }
+			            }
+		            }
+	            };
+	    }
+    }());
+    
+    // Debugging: turn off logging if not in debug mode
+    if (window.location && window.location.search.indexOf('allsizesDebug') === -1) {
+        _ = function(){};
+    }
+    
+    // end DEPENDENCIES
         
 
     // CORE FUNCTIONS
         
-    // AJAX request
+    // XHR & RESOURCE LOADING
+    
     function ajaxRequest(url, callback, method, data){
 	    var request, dataString, prop;
 	
@@ -97,7 +192,6 @@
 		    method: method,
 		    url:url,
 		    headers: {
-			    'User-agent': 'Mozilla/5.0 (compatible) Greasemonkey' + (userscript ? ': ' + userscript.title : ''),
 			    'Accept': 'application/atom+xml, application/xml, application/xml+xhtml, text/xml, text/html, application/json, application-x/javascript'
 		    },
 		    onload:function(response){
@@ -128,12 +222,61 @@
 		    }
 		    request.data = dataString;
 		    request.headers['Content-type'] = 'application/x-www-form-urlencoded';
-	    }			
-	
+	    }
+	    
 	    // Send request
 	    _('ajaxRequest: Sending request', request);
 	    GM_xmlhttpRequest(request);
     }
+    
+
+    yqlProxy = (function(){
+        var proxyTable = 'http://dharmafly.com/yqlproxy.xml',
+            ns = 'dharmafly_yqlproxy',
+            scriptCount = 0,
+            window = this,
+            document = window.document;
+
+        return function(url, callback){
+            var scriptId = ns + '_' + (scriptCount ++),
+                query = 'use "' + proxyTable + '" as proxy; select * from proxy where url="' + url + '"',
+                src = 'http://query.yahooapis.com/v1/public/yql?q=' + encodeURIComponent(query) + '&format=json&callback=' + scriptId,
+                yqlScript = document.createElement('script'),
+                callbackScript = document.createElement('script'),
+                proxyTextarea = document.createElement('textarea'),
+                proxyTextareaId = ns + '_proxy',
+                body = document.body;
+                
+            proxyTextarea.style.display = 'none';
+            proxyTextarea.id = proxyTextareaId;
+            body.appendChild(proxyTextarea);
+                
+            callbackScript.textContent = '' +
+                'window["' + scriptId + '"] = function(data){' +
+                    'document.body.removeChild(document.getElementById("' + scriptId + '"));' +
+                    'if (data && data.query && data.query.results && data.query.results.result){' +
+                        'document.getElementById("' + proxyTextareaId + '").textContent = data.query.results.result;' +
+                    '}' +
+                '};';
+            body.appendChild(callbackScript);
+            body.removeChild(callbackScript);
+            
+            yqlScript.id = scriptId;
+            yqlScript.src = src;
+            yqlScript.addEventListener('load', function(){
+                
+                window.setTimeout(function(){
+                    _('script loaded', callback);
+                    callback(proxyTextarea.textContent);
+                    body.removeChild(proxyTextarea);
+                }, 5);
+            }, false);            
+            body.appendChild(yqlScript);
+        };
+    }());
+    
+    
+    // CACHING
     
     function cacheToGM(key, value){
         var JSON = window.JSON,
@@ -174,6 +317,7 @@
     // originally from http://github.com/premasagar/revolutionaries
     cache = (function cache(key, value){    
         var JSON = window.JSON,
+            GM_getValue = window.GM_setValue,
             localStorage;
         
         if (!JSON || !JSON.parse || !JSON.stringify){
@@ -181,11 +325,6 @@
             return function(){
                 return false;
             };
-        }        
-        
-        if (typeof window.GM_setValue !== 'undefined'){
-            _('cache: using GM_setValue/ GM_getValue');
-            return cacheToGM;
         }
         
         try {
@@ -195,6 +334,13 @@
         }
         catch(e){
             _('cache: no access to localStorage');
+            if (GM_setValue && GM_getValue.toString().indexOf("not supported") === -1){
+                _('cache: using GM_setValue/ GM_getValue');
+                return cacheToGM;
+            }
+            else {
+                _('cache: no storage available');
+            }
         }
     }());
     
@@ -202,14 +348,33 @@
     // TODO: add check for error responses, and mechanism for deleting keys
     function cacheResource(url, callback){
         var cached = cache(url);
+        
+        function cacheAndCallback(data){
+            cache(url, data);
+            callback(data);
+        }
+        
         if (cached){
+            _('cacheResource: fetching from cache', url);
             callback(cached);
         }
         else {
-            ajaxRequest(url, function(data){
-                cache(url, data);
-                callback(data);
-            });
+            try{
+                _('cacheResource: via ajaxRequest', url);
+                ajaxRequest(url, function(data){
+                    if (data){
+                        cacheAndCallback(data);
+                    }
+                    else {
+                        yqlProxy(url, cacheAndCallback);
+                    }
+                });
+            }
+            catch(e){
+                _('cacheResource: ajaxRequest failed', url);
+                _('cacheResource: via yqlProxy', url);
+                yqlProxy(url, cacheAndCallback);
+            }
         }
     }
     
@@ -242,6 +407,7 @@
                 emailInner: '#share-menu-options-quick .share-menu-options-inner',
                 embedMenu: '#share-menu-options-embed',
                 embedOptions: '#share-menu-options-embed .share-menu-options',
+                embedHeader: '#share-menu-options-embed .share-menu-options-header',
                 embedInner: '#share-menu-options-embed .share-menu-options-inner',
                 embedContainer: '#share-menu-options-embed .sharing_embed_cont',
                 embedForm: '#sharing-get-html-form',
@@ -263,34 +429,29 @@
             emailInner = jQuery(dom.emailInner),
             
             embedMenu = jQuery(dom.embedMenu),
+            embedHeader = jQuery(dom.embedHeader),
             embedOptions = jQuery(dom.embedOptions),
             embedInner = jQuery(dom.embedInner),
             embedTextareas = jQuery(dom.embedTextareas),
             
-            toggleCode = jQuery('<a id="dharmafly-allsizes" href="#allsizes">bbcode</a>');
+            toggleCode = jQuery('<a id="dharmafly-allsizes" href="#allsizes">bbcode</a>'),
+            
+            mode = cache('mode');
         
         
         // Initialise
-        
-        // TEMP:
-        unsafeWindow.jQuery = jQuery;
-        unsafeWindow.allsizes = dom;
-        
-        // Set default option to display in the Share menu
-        /*
-        emailInner.attr('style', 'display:none !important;');
-        embedMenu.addClass('share-menu-options-open');
-        
-        emailHeader.one('click', function(){
-            emailInner.attr('style', '');
-        });
-        */
         
         addCss(css);
         embedInner.append(toggleCode);
         toggleCode.click(function(){
             var mode = toggleCode.text(),
+                header = embedHeader.data('content'),
                 bbcode;
+                
+            if (!header){
+                header = embedHeader.html();
+                embedHeader.data('content', header);
+            }
             
             embedTextareas.each(function(i, textarea){
                 var t = jQuery(textarea),
@@ -304,6 +465,7 @@
                 switch(mode){
                     case 'html':
                     t.val(html);
+                    embedHeader.html(header);
                     toggleCode.text('bbcode');
                     break;
                     
@@ -314,13 +476,22 @@
                         t.data('bbcode', bbcode);
                     }
                     t.val(bbcode);
+                    embedHeader.html(header.replace(/>[^>]*$/, '> Grab the BBCode'));
                     toggleCode.text('html');
                     break;
                 }
             });
-            
+            // Cache the mode for next page load
+            cache('mode', mode);
             return false;
         });
+        
+        // Check if mode was previously cached
+        if (mode){
+            toggleCode
+                .text(mode)
+                .click();
+        }
     }
     
     // end CORE FUNCTIONS
@@ -337,7 +508,13 @@
         cacheResource(url.jquery, function(src){
             eval(src);
             jQuery = window.jQuery;
-            init();
+            if (jQuery){
+                _('jQuery loaded', jQuery);
+                init();
+            }
+            else {
+                _("can't load jQuery");
+            }
         });
     }
     
