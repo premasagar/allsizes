@@ -239,7 +239,7 @@
                 yqlScript = document.createElement('script'),
                 callbackScript = document.createElement('script'),
                 proxyTextarea = document.createElement('textarea'),
-                proxyTextareaId = ns + '_proxy',
+                proxyTextareaId = scriptId + '_proxy',
                 body = document.body;
                 
             proxyTextarea.style.display = 'none';
@@ -297,7 +297,10 @@
         key = ns + '.' + key;
         if (typeof value === 'undefined'){
             value = localStorage.getItem(key); // FF3.6.8 observed to fail when given localStorage[key]
-            return value ? JSON.parse(value).v : value;
+            if (value){
+                value = JSON.parse(value);
+            }
+            return value && value.v ? value.v : value;
         }
         else {
             localStorage.setItem(key, JSON.stringify({
