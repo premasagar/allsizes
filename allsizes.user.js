@@ -7,10 +7,7 @@
 // @version         2.0.0
 // @date            2010-07-27
 
-// @include         http://www.flickr.com/photo_zoom.gne*
 // @include         http://www.flickr.com/photos/*/*
-// @include         http://www.flickr.com/account/prefs/downloads*
-// @include         http://www.flickr.com/account/prefs/license*
 //
 // @exclude         http://www.flickr.com/photos/organize/*
 // @exclude         http://www.flickr.com/photos/friends/*
@@ -261,8 +258,7 @@
             
             yqlScript.id = scriptId;
             yqlScript.src = src;
-            yqlScript.addEventListener('load', function(){
-                
+            yqlScript.addEventListener('load', function(){ // TODO: Make IE-friendly
                 window.setTimeout(function(){
                     _('script loaded', callback);
                     callback(proxyTextarea.textContent);
