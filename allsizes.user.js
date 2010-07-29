@@ -75,7 +75,7 @@
         //_ = unsafeWindow.console && unsafeWindow.console.log ? unsafeWindow.console.log : function(){},
         GM_xmlhttpRequest = window.GM_xmlhttpRequest,
         jQuery = window.jQuery,
-        _, cache, yqlProxy;
+        consoleDebug, _, cache, yqlProxy;
         
         
     // DEPENDENCIES
@@ -84,7 +84,7 @@
     * Console
     *   github.com/premasagar/mishmash/tree/master/console/
     */
-    _ = (function(){
+    consoleDebug = (function(){
         var
             window = this,
             ua = window.navigator.userAgent,
@@ -163,9 +163,9 @@
     }());
     
     // Debugging: turn off logging if not in debug mode
-    if (window.location && window.location.search.indexOf('allsizesDebug') === -1) {
-        _ = function(){};
-    }
+    _ = window.location && window.location.search.indexOf('allsizesDebug') !== -1 ?
+        consoleDebug :
+        function(){};
     
     // end DEPENDENCIES
         
@@ -226,8 +226,8 @@
     
 
     yqlProxy = (function(){
-        var proxyTable = 'http://dharmafly.com/yqlproxy.xml',
-            ns = 'dharmafly_yqlproxy',
+        var proxyTable = 'http://code.dharmafly.com/yql/proxy.xml',
+            ns = 'dharmafly_proxy',
             scriptCount = 0,
             window = this,
             document = window.document;
@@ -401,13 +401,13 @@
             dom = {
                 shareBtn: '#button-bar-share',
                 shareOptions: '#share-menu .share-menu-options',
+                shareHeaders: '#share-menu .share-menu-options-header',
                 
-                emailMenu: '#share-menu-options-quick',
+                emailOption: '#share-menu-options-quick',
                 emailHeader: '#share-menu-options-quick .share-menu-options-header',
                 emailInner: '#share-menu-options-quick .share-menu-options-inner',
                 
-                embedMenu: '#share-menu-options-embed',
-                embedOptions: '#share-menu-options-embed .share-menu-options',
+                embedOption: '#share-menu-options-embed',
                 embedHeader: '#share-menu-options-embed .share-menu-options-header',
                 embedInner: '#share-menu-options-embed .share-menu-options-inner',
                 embedContainer: '#share-menu-options-embed .sharing_embed_cont',
@@ -417,41 +417,71 @@
             },
             
             shareOptionsOpen = 'share-menu-options-open',
+            allsizesToggleId = 'dharmafly-allsizes-toggle',
             
             // CSS styles
             css = '' +
                 dom.embedInner + '{overflow:auto !important;}' +
                 dom.embedForm + '{float:left !important;}' +
-                '#dharmafly-allsizes {font-size:11px; float:right; padding:4px;}',
+                '#' + allsizesToggleId + ' {font-size:11px; float:right; padding:4px;}',
             
             // DOM elements
             shareBtn = jQuery(dom.shareBtn),
             shareOptions = jQuery(dom.shareOptions),
+            shareHeaders = jQuery(dom.shareHeaders),
             
-            emailMenu = jQuery(dom.emailMenu),
+            emailOption = jQuery(dom.emailOption),
             emailHeader = jQuery(dom.emailHeader),
             emailInner = jQuery(dom.emailInner),
             
-            embedMenu = jQuery(dom.embedMenu),
+            embedOption = jQuery(dom.embedOption),
             embedHeader = jQuery(dom.embedHeader),
-            embedOptions = jQuery(dom.embedOptions),
             embedInner = jQuery(dom.embedInner),
             embedTextareas = jQuery(dom.embedTextareas),
             
-            toggleCode = jQuery('<a id="dharmafly-allsizes" href="#allsizes">bbcode</a>'),
+            toggleCode = jQuery('<a id="' + allsizesToggleId + '" href="#allsizes-toggle">bbcode</a>'),
             
-            mode = cache('mode');
+            mode = cache('mode'),
+            menuOption = cache('menuOption'),
+            defaultMenuOption;
         
         
         // Initialise
         
-        // Set HTML option to open by default
-        shareOptions.removeClass(shareOptionsOpen);
-        embedMenu.addClass(shareOptionsOpen);
+        // Set menu option that opens when Share button is clicked
+        if (menuOption){
+            defaultMenuOption = jQuery('#' + menuOption);
+        }
+        if (!defaultMenuOption.length){
+            defaultMenuOption = embedOption; // 'Grab the HTML' menu option is the default
+        }
+        if (defaultMenuOption.length){
+            // Remove existing open option
+            shareOptions.removeClass(shareOptionsOpen);
+            // Apply our own option
+            defaultMenuOption.addClass(shareOptionsOpen);
+        }
         
+        // Cache open menu option
+        shareHeaders.click(function(){
+            var menu = jQuery(this).parents('.share-menu-options');
+            // set timeout to allow time for combo box to change the classnames
+            window.setTimeout(function(){
+                var id;
+                if (menu.hasClass(shareOptionsOpen)){
+                    id = menu.attr('id');
+                    _('caching the most recently clicked menu option', id);
+                    cache('menuOption', id);
+                }
+            }, 1500);
+        });
         
+        // Add CSS to head
         addCss(css);
+        
+        // Append the toggle code, for user to change from HTML to BBCode, etc
         embedInner.append(toggleCode);
+        
         toggleCode.click(function(){
             var mode = toggleCode.text(),
                 header = embedHeader.data('content'),
@@ -508,6 +538,12 @@
     
     
     // INITIALISE
+    // Sticky debug mode - uncomment the next line
+    // cache('debug', true);
+    
+    if (cache('debug')){
+        _ = consoleDebug;
+    }
     
     if (jQuery){
         init();

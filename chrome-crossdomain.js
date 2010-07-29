@@ -1,6 +1,6 @@
 var yqlProxy = (function(){
-    var proxyTable = 'http://dharmafly.com/yqlproxy.xml',
-        ns = 'dharmafly_yqlproxy',
+    var proxyTable = 'http://code.dharmafly.com/yql/proxy.xml',
+        ns = 'dharmafly_proxy',
         scriptCount = 0,
         window = this,
         document = window.document;
