@@ -244,7 +244,8 @@
                 callbackScript = document.createElement('script'),
                 // textarea to temporarily contain the jsonp payload, once the resource has loaded
                 delegateTextarea = document.createElement('textarea'),
-                delegateTextareaId = scriptId + '_proxy';
+                delegateTextareaId = scriptId + '_proxy',
+                JSON = window.JSON;
             
             // hide the textarea and append to the dom
             delegateTextarea.style.display = 'none';
@@ -254,11 +255,16 @@
             // inject script that will set up the callback function in the native window
             callbackScript.textContent = '' +
                 'window["' + scriptId + '"] = function(data){' +
+                    'var JSON = window.JSON,' +
+                        'document = window.document;' +                    
                     // remove the jsonp script element
                     'document.body.removeChild(document.getElementById("' + scriptId + '"));' +
                     // add its payload to the textarea
-                    'if (data && data.query && data.query.results && data.query.results.result){' +
-                        'document.getElementById("' + delegateTextareaId + '").textContent = data.query.results.result;' +
+                    'if (data){' +
+                        'if (JSON && JSON.stringify){' +
+                            'data = JSON.stringify(data);' +
+                        '}' +
+                        'document.getElementById("' + delegateTextareaId + '").textContent = data;' +
                     '}' +
                 '};';
             body.appendChild(callbackScript);
@@ -272,7 +278,11 @@
             jsonpScript.addEventListener('load', function(){
                 window.setTimeout(function(){
                     _('script loaded', callback);
-                    callback(delegateTextarea.textContent);
+                    var data = delegateTextarea.textContent;
+                    if (JSON && JSON.parse){
+                        data = JSON.parse(data);
+                    }
+                    callback(data);
                     body.removeChild(delegateTextarea);
                 }, 5);
             }, false);
@@ -288,14 +298,20 @@
     
     function yql(query, callback){
         jsonp(yqlUrl(query), callback);
-        // select content from html where url="http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/" and xpath='//head/title';
     }
     
     function proxy(url, callback){
         var proxyDataTable = 'http://code.dharmafly.com/yql/proxy.xml',
             query = 'use "' + proxyDataTable + '" as proxy; select * from proxy where url="' + url + '"';
             
-        yql(query, callback);
+        yql(query, function(data){
+            if (data && data.query && data.query.results && data.query.results.result){
+                callback(data.query.results.result);
+            }
+            else {
+                callback(false);
+            }
+        });
     }
     
     
@@ -377,7 +393,9 @@
         var cached = cache(url);
         
         function cacheAndCallback(data){
-            cache(url, data);
+            if (data){
+                cache(url, data);
+            }
             callback(data);
         }
         
@@ -403,6 +421,20 @@
                 proxy(url, cacheAndCallback);
             }
         }
+    }
+    
+    
+    // OTHER FUNCTIONS
+    
+    function userScriptLatestVersionFromFlickrHacks(callback){
+        var query = 'select content from html where url="http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/" and xpath="//head/title";';
+        yql(query, function(data){
+            var v;
+            if (data && data.query && data.query.results && data.query.results.title){
+                v = data.query.results.title.replace(/^[\w\W]*v([\d\.]*\d)($|\D[\w\W]*$)/im, '$1');
+            }
+            callback(v.match(/[\d\.]*\d/) ? v : false);
+        });
     }
     
     function addCss(css){
@@ -580,8 +612,10 @@
     else {
         _('fetching jQuery');
         cacheResource(url.jquery, function(src){
-            eval(src);
-            jQuery = window.jQuery;
+            if (src){
+                eval(src);
+                jQuery = window.jQuery.noConflict(true);
+            }
             if (jQuery){
                 _('jQuery loaded', jQuery);
                 init();
