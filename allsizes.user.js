@@ -75,7 +75,7 @@
         //_ = unsafeWindow.console && unsafeWindow.console.log ? unsafeWindow.console.log : function(){},
         GM_xmlhttpRequest = window.GM_xmlhttpRequest,
         jQuery = window.jQuery,
-        consoleDebug, _, cache, yqlProxy;
+        consoleDebug, _, cache, jsonp;
         
         
     // DEPENDENCIES
@@ -224,50 +224,79 @@
 	    GM_xmlhttpRequest(request);
     }
     
-
-    yqlProxy = (function(){
-        var proxyTable = 'http://code.dharmafly.com/yql/proxy.xml',
-            ns = 'dharmafly_proxy',
+    
+    // A JSONP bridge that circumvents the restriction in some browsers (e.g. Chrome) that a) don't allow JavaScript objects to pass from the host window to the userscript window, b) don't allow scripts to be loaded into the userscript window, and c) don't allow crossdomain Ajax requests. An utter hack. But it works.
+    jsonp = (function(){
+        var ns = 'dharmafly_jsonp',
             scriptCount = 0,
             window = this,
-            document = window.document;
+            document = window.document,
+            body = document.body;
 
-        return function(url, callback){
-            var scriptId = ns + '_' + (scriptCount ++),
-                query = 'use "' + proxyTable + '" as proxy; select * from proxy where url="' + url + '"',
-                src = 'http://query.yahooapis.com/v1/public/yql?q=' + encodeURIComponent(query) + '&format=json&callback=' + scriptId,
-                yqlScript = document.createElement('script'),
+        return function(url, callback){ // url should have trailing 'callback=?', in keeping with jQuery.getJSON
+            var // a unique script id
+                scriptId = ns + '_' + (scriptCount ++),
+                // use script id as the callback function name, and append it to the url "http://example.com?callback="
+                src = url.slice(0,-1) + scriptId,
+                // script element to load the external jsonp resource
+                jsonpScript = document.createElement('script'),
+                // script element to inject a function
                 callbackScript = document.createElement('script'),
-                proxyTextarea = document.createElement('textarea'),
-                proxyTextareaId = scriptId + '_proxy',
-                body = document.body;
-                
-            proxyTextarea.style.display = 'none';
-            proxyTextarea.id = proxyTextareaId;
-            body.appendChild(proxyTextarea);
-                
+                // textarea to temporarily contain the jsonp payload, once the resource has loaded
+                delegateTextarea = document.createElement('textarea'),
+                delegateTextareaId = scriptId + '_proxy';
+            
+            // hide the textarea and append to the dom
+            delegateTextarea.style.display = 'none';
+            delegateTextarea.id = delegateTextareaId;
+            body.appendChild(delegateTextarea);
+            
+            // inject script that will set up the callback function in the native window
             callbackScript.textContent = '' +
                 'window["' + scriptId + '"] = function(data){' +
+                    // remove the jsonp script element
                     'document.body.removeChild(document.getElementById("' + scriptId + '"));' +
+                    // add its payload to the textarea
                     'if (data && data.query && data.query.results && data.query.results.result){' +
-                        'document.getElementById("' + proxyTextareaId + '").textContent = data.query.results.result;' +
+                        'document.getElementById("' + delegateTextareaId + '").textContent = data.query.results.result;' +
                     '}' +
                 '};';
             body.appendChild(callbackScript);
+            // script element can be removed immediately, since its function has now executed
             body.removeChild(callbackScript);
             
-            yqlScript.id = scriptId;
-            yqlScript.src = src;
-            yqlScript.addEventListener('load', function(){ // TODO: Make IE-friendly
+            // set up the jsonp script to load the external resource
+            jsonpScript.id = scriptId;
+            jsonpScript.src = src;
+            // once it has loaded, grab the contents of the textarea and remove the textarea element
+            jsonpScript.addEventListener('load', function(){
                 window.setTimeout(function(){
                     _('script loaded', callback);
-                    callback(proxyTextarea.textContent);
-                    body.removeChild(proxyTextarea);
+                    callback(delegateTextarea.textContent);
+                    body.removeChild(delegateTextarea);
                 }, 5);
-            }, false);            
-            body.appendChild(yqlScript);
+            }, false);
+            // append the jsonp script element, and go...
+            body.appendChild(jsonpScript);
         };
     }());
+    
+    function yqlUrl(query, format){
+        format = format || 'json';
+        return 'http://query.yahooapis.com/v1/public/yql?q=' + encodeURIComponent(query) + '&format=' + format + '&callback=?';
+    }
+    
+    function yql(query, callback){
+        jsonp(yqlUrl(query), callback);
+        // select content from html where url="http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/" and xpath='//head/title';
+    }
+    
+    function proxy(url, callback){
+        var proxyDataTable = 'http://code.dharmafly.com/yql/proxy.xml',
+            query = 'use "' + proxyDataTable + '" as proxy; select * from proxy where url="' + url + '"';
+            
+        yql(query, callback);
+    }
     
     
     // CACHING
@@ -364,14 +393,14 @@
                         cacheAndCallback(data);
                     }
                     else {
-                        yqlProxy(url, cacheAndCallback);
+                        proxy(url, cacheAndCallback);
                     }
                 });
             }
             catch(e){
                 _('cacheResource: ajaxRequest failed', url);
-                _('cacheResource: via yqlProxy', url);
-                yqlProxy(url, cacheAndCallback);
+                _('cacheResource: via proxy', url);
+                proxy(url, cacheAndCallback);
             }
         }
     }
