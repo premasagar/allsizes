@@ -300,14 +300,14 @@
             
         key = ns + '.' + key;
         if (typeof value === 'undefined'){
-            value = localStorage[key];
+            value = localStorage.getItem(key); // FF3.6.8 observed to fail when given localStorage[key]
             return value ? JSON.parse(value).v : value;
         }
         else {
-            localStorage[key] = JSON.stringify({
+            localStorage.setItem(key, JSON.stringify({
                 v: value,
                 t: (new Date()).getTime()
-            });
+            }));
         }
     }
     
