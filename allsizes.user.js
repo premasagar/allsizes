@@ -87,9 +87,7 @@
     * Console
     *   github.com/premasagar/mishmash/tree/master/console/
     */
-    _
-
-    = (function(){
+    _ = (function(){
         var
             window = this,
             ua = window.navigator.userAgent,
@@ -317,7 +315,8 @@
     // originally from http://github.com/premasagar/revolutionaries
     cache = (function cache(key, value){    
         var JSON = window.JSON,
-            GM_getValue = window.GM_setValue,
+            GM_getValue = window.GM_getValue,
+            GM_setValue = window.GM_setValue,
             localStorage;
         
         if (!JSON || !JSON.parse || !JSON.stringify){
@@ -402,9 +401,12 @@
             // TODO: DRY
             dom = {
                 shareBtn: '#button-bar-share',
+                shareOptions: '#share-menu .share-menu-options',
+                
                 emailMenu: '#share-menu-options-quick',
                 emailHeader: '#share-menu-options-quick .share-menu-options-header',
                 emailInner: '#share-menu-options-quick .share-menu-options-inner',
+                
                 embedMenu: '#share-menu-options-embed',
                 embedOptions: '#share-menu-options-embed .share-menu-options',
                 embedHeader: '#share-menu-options-embed .share-menu-options-header',
@@ -415,6 +417,8 @@
                 currentTextarea: '#share-menu-options-embed .sharing_embed_cont textarea:visible'
             },
             
+            shareOptionsOpen = 'share-menu-options-open',
+            
             // CSS styles
             css = '' +
                 dom.embedInner + '{overflow:auto !important;}' +
@@ -423,6 +427,7 @@
             
             // DOM elements
             shareBtn = jQuery(dom.shareBtn),
+            shareOptions = jQuery(dom.shareOptions),
             
             emailMenu = jQuery(dom.emailMenu),
             emailHeader = jQuery(dom.emailHeader),
@@ -440,6 +445,11 @@
         
         
         // Initialise
+        
+        // Set HTML option to open by default
+        shareOptions.removeClass(shareOptionsOpen);
+        embedMenu.addClass(shareOptionsOpen);
+        
         
         addCss(css);
         embedInner.append(toggleCode);
