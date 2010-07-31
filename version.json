@@ -1,0 +1,18 @@
+{
+    "userscript":{
+        "id": "dharmafly-allsizes",
+        "title": "AllSizes",
+        "version": "2.0.0",
+        "author": "Premasagar Rose",
+        "authorUrl": "http://premasagar.com",
+        "url": "http://dharmafly.com/projects/allsizes/",
+        "src": "http://userscripts.org/scripts/source/6178.user.js',
+        "discuss": 'http://flickr.com/groups/flickrhacks/discuss/72157594303798688/",
+        "code": "http://github.com/premasagar/allsizes/",
+        "changelog": [
+            "20100729": [
+                "AllSizes v2 released for new Flickr website interface"
+            ]
+        ]
+    }
+}

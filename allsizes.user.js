@@ -1,11 +1,12 @@
 // ==UserScript==
-// @name            Flickr AllSizes
+// @name            Flickr AllSizes, by Dharmafly
 // @namespace       dharmafly.com
 // @description     AllSizes is a (Greasemonkey) UserScript for Flickr, to give better access to Flickr photos: HTML for the various sizes, URLs, downloads.
 // @author          Premasagar Rose <http://premasagar.com>
 // @identifier      http://dharmafly.com/projects/allsizes/allsizes.user.js
 // @version         2.0.0
 // @date            2010-07-27
+
 
 // @include         http://www.flickr.com/photos/*/*
 //
@@ -45,6 +46,9 @@
 *       userscripts.org/scripts/source/6178.user.js
 *       dharmafly.com/projects/allsizes/allsizes.user.js (mirror)
 *
+*   fave the app in the Flickr App Garden:
+*       flickr.com/services/apps/34760/
+*
 *//*
     AllSizes is a (Greasemonkey) UserScript for Flickr, to give better access to Flickr photos: HTML for the various sizes, URLs, downloads.
 
@@ -66,16 +70,22 @@
 	        title: 'AllSizes',
 	        version: '2.0.0'
         },
+        ns = userscript.id,
+        day = 24 * 60 * 60 * 1000,
+        checkUpdatesEvery = day,
         url = {
-            // Temporarily using older version of jQuery, as latest (1.4.2) is not compatible with Greasemonkey. See http://forum.jquery.com/topic/importing-jquery-1-4-1-into-greasemonkey-scripts-generates-an-error
+            // TEMP: using older version of jQuery, as latest (1.4.2) is not compatible with Greasemonkey. See http://forum.jquery.com/topic/importing-jquery-1-4-1-into-greasemonkey-scripts-generates-an-error
             jquery: 'http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.js'
         },
         window = this,
-        unsafeWindow = window.unsafeWindow || {},
+        // unsafeWindow = window.unsafeWindow || {},
         //_ = unsafeWindow.console && unsafeWindow.console.log ? unsafeWindow.console.log : function(){},
+        JSON = window.JSON,
+        GM_getValue = window.GM_getValue,
+        GM_setValue = window.GM_setValue,
         GM_xmlhttpRequest = window.GM_xmlhttpRequest,
         jQuery = window.jQuery,
-        consoleDebug, _, cache, jsonp;
+        consoleDebug, _, cache, jsonp, cacheCore, cacheToLocalStorage, cacheToGM, localStorage;
         
         
     // DEPENDENCIES
@@ -317,74 +327,96 @@
     
     // CACHING
     
-    function cacheToGM(key, value){
-        var JSON = window.JSON,
-            GM_getValue = window.GM_getValue,
-            GM_setValue = window.GM_setValue;
-            
-        if (typeof value === 'undefined'){
-            value = GM_getValue(key);
-            return value ? JSON.parse(value).v : value;
+    cacheCore = {
+        get: function(key){
+            var w = this.getWrapper(key);
+            return (w && w.v ? w.v : w);
+        },
+        lastModified: function(key){
+            var w = this.getWrapper(key);
+            return (w && w.t ? w.t : false);
         }
-        else {
+    };
+    
+    cacheToGM = {
+        getWrapper: function(key){
+            key = ns + '-' + key;
+            var wrapper = GM_getValue(key);
+            return wrapper ? JSON.parse(wrapper) : wrapper;
+        },
+        set: function(key, value){
+            key = ns + '-' + key;
             GM_setValue(key, JSON.stringify({
                 v: value,
                 t: (new Date()).getTime()
             }));
+            return value;
         }
-    }
+    };
     
-    function cacheToLocalStorage(key, value){
-        var ns = userscript.id,
-            JSON = window.JSON,
-            localStorage = window.localStorage;
-            
-        key = ns + '.' + key;
-        if (typeof value === 'undefined'){
-            value = localStorage.getItem(key); // FF3.6.8 observed to fail when given localStorage[key]
-            if (value){
-                value = JSON.parse(value);
-            }
-            return value && value.v ? value.v : value;
-        }
-        else {
+    cacheToLocalStorage = {
+        getWrapper: function(key){
+            key = ns + '-' + key;
+            var wrapper = localStorage.getItem(key); // FF3.6.8 observed to fail when given localStorage[key]
+            return wrapper ? JSON.parse(wrapper) : wrapper;
+        },
+        set: function(key, value){
+            key = ns + '-' + key;
             localStorage.setItem(key, JSON.stringify({
                 v: value,
                 t: (new Date()).getTime()
             }));
+            return value;
         }
-    }
+    };
     
     // localStorage wrapper
     // originally from http://github.com/premasagar/revolutionaries
-    cache = (function cache(key, value){    
-        var JSON = window.JSON,
-            GM_getValue = window.GM_getValue,
-            GM_setValue = window.GM_setValue,
-            localStorage;
+    cache = (function(){
+        var storageService, storageWrapper, prop;
         
         if (!JSON || !JSON.parse || !JSON.stringify){
             _('cache: no native JSON');
-            return function(){
-                return false;
-            };
         }
-        
-        try {
-            localStorage = window.localStorage;
-            _('cache: using localStorage');
-            return cacheToLocalStorage;
-        }
-        catch(e){
-            _('cache: no access to localStorage');
-            if (GM_setValue && GM_getValue.toString().indexOf("not supported") === -1){
-                _('cache: using GM_setValue/ GM_getValue');
-                return cacheToGM;
+        else {
+            try {
+                localStorage = window.localStorage;
+                _('cache: using localStorage');
+                storageService = cacheToLocalStorage;
             }
-            else {
-                _('cache: no storage available');
+            catch(e){
+                _('cache: no access to localStorage');
+                if (GM_setValue && GM_getValue.toString().indexOf("not supported") === -1){
+                    _('cache: using GM_setValue/ GM_getValue');
+                    storageService = cacheToGM;
+                }
+            }
+            
+            if (storageService){
+                storageWrapper = function (key, value){
+                    return (typeof value === 'undefined') ?
+                        storageWrapper.get(key) :
+                        storageWrapper.set(key, value);
+                };
+                // extend wrapper function with cacheCore methods
+                for (prop in cacheCore){
+                    if (cacheCore.hasOwnProperty(prop)){
+                        storageWrapper[prop] = cacheCore[prop];
+                    }
+                }
+                // extend wrapper function with storageService methods
+                for (prop in storageService){
+                    if (storageService.hasOwnProperty(prop)){
+                        storageWrapper[prop] = storageService[prop];
+                    }
+                }
+                return storageWrapper;
             }
         }
+        _('cache: no storage available');
+        return function(){
+            return false;
+        };
     }());
     
     // Caching layer for remote resources, e.g. JSON
@@ -426,7 +458,9 @@
     
     // OTHER FUNCTIONS
     
-    function userScriptLatestVersionFromFlickrHacks(callback){
+    function latestUserscriptVersionAlt(callback){
+        _('latestUserscriptVersionAlt: checking latest version from discussion thread');
+    
         var query = 'select content from html where url="http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/" and xpath="//head/title";';
         yql(query, function(data){
             var v;
@@ -434,6 +468,71 @@
                 v = data.query.results.title.replace(/^[\w\W]*v([\d\.]*\d)($|\D[\w\W]*$)/im, '$1');
             }
             callback(v.match(/[\d\.]*\d/) ? v : false);
+        });
+    }
+    
+    function latestUserscript(callback){
+        var url = 'http://code.dharmafly.com/allsizes/version.json',
+            query = 'select * from json where url="' + url + '"',
+            latest = cache('latestUserscript'),
+            now = (new Date()).getTime(),
+            lastModified,
+            cacheAndCallback = function(data){
+                if (data && data.query && data.query.results && data.query.results.userscript){
+                    latest = data.query.results.userscript;
+                    _('latestUserscript: from remote store', latest);
+                    cache('latestUserscript', latest);
+                    callback(latest);
+                }
+                else { // could not get latest userscript data
+                    // try another method to get the latest version
+                    latestUserscriptVersionAlt(function(v){
+                        if (v){ // apply the latest version to the existing meta data
+                            latest = jQuery.extend({}, userscript, {version:v});
+                            _('latestUserscript: from alt store', latest);
+                            cache('latestUserscript', latest);
+                            callback(latest);
+                        }
+                        else {
+                            callback(false);
+                        }
+                    });
+                }
+            };
+        
+        if (latest){
+            lastModified = cache.lastModified('latestUserscript');
+            if (now > lastModified + checkUpdatesEvery){
+                _('latestUserscript: checking remote data');
+                yql(query, cacheAndCallback);
+            }
+            else {
+                _('latestUserscript: retrieved from cache', latest);
+                callback(latest);
+            }
+        }
+        else {
+            yql(query, cacheAndCallback);
+        }
+    }
+    
+    // calls back true if a new updatge to the userscript is available
+    function updateAvailable(callback){
+        latestUserscript(function(latest){
+            var avail = !!(latest && latest.version && latest.version > userscript.version);
+            _('updateAvailable:', avail, latest);
+            callback(avail ? latest : false);
+        });
+    }
+    
+    function checkForUpdates(){
+        updateAvailable(function(latest){
+            /*
+            alert(avail ?
+                "A new update is available" :
+                "There is no new update available"
+            );
+            */
         });
     }
     
@@ -455,6 +554,7 @@
         
     function init(){
         _('initialising AllSizes');
+        checkForUpdates();
         
         var
             // DOM selectors
@@ -513,10 +613,11 @@
         if (menuOption){
             defaultMenuOption = jQuery('#' + menuOption);
         }
-        if (!defaultMenuOption.length){
+        _('defaultMenuOption', defaultMenuOption);
+        if (!defaultMenuOption || !defaultMenuOption.length){
             defaultMenuOption = embedOption; // 'Grab the HTML' menu option is the default
         }
-        if (defaultMenuOption.length){
+        if (defaultMenuOption && defaultMenuOption.length){
             // Remove existing open option
             shareOptions.removeClass(shareOptionsOpen);
             // Apply our own option
@@ -627,4 +728,8 @@
     }
     
     // end INITIALISE
+
+/*
+    TODO: drag and drop to external apps - e.g. your chosen format for the code in a plain text view (e.g. blog post or text editor), or image into a rich media view (e.g. WordPress visual editor, Gmail interface)b
+*/
 }());
