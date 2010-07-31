@@ -41,7 +41,7 @@
 *   source code:
 *       github.com/premasagar/allsizes/
 *
-*   latest stable version:
+*   latest version:
 *       userscripts.org/scripts/source/6178.user.js
 *       dharmafly.com/projects/allsizes/allsizes.user.js (mirror)
 *
@@ -90,7 +90,7 @@
             ua = window.navigator.userAgent,
             console = window.console,
             opera = window.opera,
-            debug;
+            debug, log;
         
         // Doesn't support console API
         if (!console){
@@ -122,43 +122,47 @@
         else {
             debug = console.debug;
             
-            // WebKit complains if console's debug function is called on its own
-            if (/webkit/i.test(ua)){
-                return function(){
-                    var i = 0,
-                        args = arguments,
-                        len = args.length,
-                        arr = [];
-                    
-                    if (len === 1){
-                        console.debug(args[i]);
-                    }
-                    else if (len > 1){
-                        for (; i < len; i++){
-                            arr.push(args[i]);
+            if (debug){
+                // WebKit complains if console's debug function is called on its own
+                if (/webkit/i.test(ua)){
+                    return function(){
+                        var i = 0,
+                            args = arguments,
+                            len = args.length,
+                            arr = [];
+                        
+                        if (len === 1){
+                            console.debug(args[i]);
                         }
-                        console.debug(arr);
-                    }
-                };
+                        else if (len > 1){
+                            for (; i < len; i++){
+                                arr.push(args[i]);
+                            }
+                            console.debug(arr);
+                        }
+                    };
+                }
+                return debug;
             }
-            
-            return debug ? // FF Firebug
-	            debug :
-	            function(){
-		            var i, argLen, log = console.log, args = arguments, indent = '';
-		            if (log){ // WebKit
-			            if (typeof log.apply === 'function'){
-				            log.apply(console, args);
-			            }
-			            else { // IE8
-				            argLen = args.length;
-				            for (i=0; i < argLen; i++){
-					            log(indent + args[i]);
-                                indent = '---- ';
-				            }
-			            }
-		            }
-	            };
+            if (log){ // old WebKit
+                if (typeof log.apply === 'function'){
+                    return function(){
+                        log.apply(console, arguments);
+                    };
+                }
+                else { // IE8
+                    return function(){
+                        var argLen = arguments.length,
+                            indent = '',
+                            i;
+                            
+                        for (i=0; i < argLen; i++){
+	                        log(indent + args[i]);
+                            indent = '---- ';
+                        }
+                    };
+                }
+            }
 	    }
     }());
     
@@ -324,13 +328,23 @@
             
         if (typeof value === 'undefined'){
             value = GM_getValue(key);
-            return value ? JSON.parse(value).v : value;
+            if (value){
+                value = JSON.parse(value);
+            }
+            if (value && value.v){
+                value = value.v;
+                _('cache GET: ' + key, typeof value === 'string' ? value.slice(0, 50) : value);
+                return value;
+            }
+            __('cache GET error: ' + key);
         }
         else {
             GM_setValue(key, JSON.stringify({
                 v: value,
                 t: (new Date()).getTime()
             }));
+            _('cache SET: ' + key, value);
+            return value;
         }
     }
     
@@ -339,19 +353,26 @@
             JSON = window.JSON,
             localStorage = window.localStorage;
             
-        key = ns + '.' + key;
+        nsKey = ns + '.' + key;
         if (typeof value === 'undefined'){
-            value = localStorage.getItem(key); // FF3.6.8 observed to fail when given localStorage[key]
+            value = localStorage.getItem(nsKey); // FF3.6.8 observed to fail when given localStorage[nsKey]
             if (value){
                 value = JSON.parse(value);
             }
-            return value && value.v ? value.v : value;
+            if (value && value.v){
+                value = value.v;
+                _('cache GET: ' + key, typeof value === 'string' ? value.slice(0, 100) : value);
+                return value;
+            }
+            __('cache GET error: ' + key);
         }
         else {
-            localStorage.setItem(key, JSON.stringify({
+            localStorage.setItem(nsKey, JSON.stringify({
                 v: value,
                 t: (new Date()).getTime()
             }));
+            _('cache SET: ' + key, value);
+            return value;
         }
     }
     
@@ -474,7 +495,8 @@
                 embedContainer: '#share-menu-options-embed .sharing_embed_cont',
                 embedForm: '#sharing-get-html-form',
                 embedTextareas: '#share-menu-options-embed .sharing_embed_cont textarea',
-                currentTextarea: '#share-menu-options-embed .sharing_embed_cont textarea:visible'
+                currentTextarea: '#share-menu-options-embed .sharing_embed_cont textarea:visible',
+                imageSizeSelect: '#sharing_size'
             },
             
             shareOptionsOpen = 'share-menu-options-open',
@@ -499,31 +521,50 @@
             embedHeader = jQuery(dom.embedHeader),
             embedInner = jQuery(dom.embedInner),
             embedTextareas = jQuery(dom.embedTextareas),
+            imageSizeSelect = jQuery(dom.imageSizeSelect),
             
             toggleCode = jQuery('<a id="' + allsizesToggleId + '" href="#allsizes-toggle">bbcode</a>'),
             
             mode = cache('mode'),
             menuOption = cache('menuOption'),
-            defaultMenuOption;
+            defaultMenuOption,
+            imageSize = cache('imageSize');
         
         
         // Initialise
         
-        // Set menu option that opens when Share button is clicked
-        if (menuOption){
-            defaultMenuOption = jQuery('#' + menuOption);
-        }
-        if (!defaultMenuOption.length){
-            defaultMenuOption = embedOption; // 'Grab the HTML' menu option is the default
-        }
-        if (defaultMenuOption.length){
-            // Remove existing open option
-            shareOptions.removeClass(shareOptionsOpen);
-            // Apply our own option
-            defaultMenuOption.addClass(shareOptionsOpen);
-        }
+        // When the "Share" button is clicked, open the menu at the last viewed menu option
+        shareBtn.one('click', function(){
+            _('Share button clicked');
         
-        // Cache open menu option
+            if (menuOption){
+                defaultMenuOption = jQuery('#' + menuOption);
+            }
+            if (!defaultMenuOption.length){
+                defaultMenuOption = embedOption; // 'Grab the HTML' menu option is the default
+            }
+            if (defaultMenuOption.length){
+                // Remove existing open option
+                shareOptions.removeClass(shareOptionsOpen);
+                // Apply our own option
+                defaultMenuOption.addClass(shareOptionsOpen);
+            }
+            // Change the image size selectbox to the cached size
+            if (imageSize){
+                window.setTimeout(function(){
+                    // If the requested value exists, apply it to the selectbox
+                    if (imageSizeSelect.find('option[value=' + imageSize + ']').length){
+                        imageSizeSelect.val(imageSize);
+                    }
+                    // open the largest option available
+                    else {
+                        imageSizeSelect.val(imageSizeSelect.find('option:last').val());
+                    }
+                }, 50);
+            }
+        });
+        
+        // Cache the most recently opened menu option
         shareHeaders.click(function(){
             var menu = jQuery(this).parents('.share-menu-options');
             // set timeout to allow time for combo box to change the classnames
@@ -535,6 +576,11 @@
                     cache('menuOption', id);
                 }
             }, 1500);
+        });
+        
+        // Cache the most recently changed image size
+        imageSizeSelect.change(function(){
+            cache('imageSize', imageSizeSelect.val());
         });
         
         // Add CSS to head
@@ -604,6 +650,7 @@
     
     if (cache('debug')){
         _ = consoleDebug;
+        _('/*! ' + userscript.title + '\n*   v' + userscript.version + ' (userscript)\n**/');
     }
     
     if (jQuery){
