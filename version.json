@@ -2,7 +2,7 @@
     "userscript":{
         "id": "dharmafly-allsizes",
         "name": "AllSizes",
-        "version": "2.0.1",
+        "version": "2.0.0",
         "author": "Premasagar Rose",
         "authorUrl": "http://premasagar.com",
         "url": "http://dharmafly.com/projects/allsizes/",
