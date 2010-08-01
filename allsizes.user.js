@@ -65,7 +65,7 @@
 (function(){
     var userscript = {
             id: 'dharmafly-allsizes',
-	        title: 'AllSizes',
+	        name: 'AllSizes',
 	        version: '2.0.0'
         },
         ns = userscript.id,
@@ -735,9 +735,9 @@
         
         // When the "Share" button is clicked, open the menu at the last viewed menu option
         shareBtn
-            .removeClass(buttonDisabled)
-            .addClass(buttonNormal)
-            .one('click', function(){
+            .removeClass(buttonDisabled) // change button from disabled...
+            .addClass(buttonNormal) // ...to a normal button
+            .one('click', function(){ // add init behaviour
                 _('Share button clicked. Setting up menu...');
                 
                 // Add CSS to head
@@ -763,7 +763,7 @@
     
     if (cache('debug')){
         _ = consoleDebug;
-        _('/*! ' + userscript.title + '\n*   v' + userscript.version + ' (userscript)\n*/');
+        _('/*! ' + userscript.name + '\n*   v' + userscript.version + ' (userscript)\n*/');
     }
     
     if (jQuery){
