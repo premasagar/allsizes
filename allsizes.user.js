@@ -1,13 +1,36 @@
 // ==UserScript==
 // @name            Flickr AllSizes, by Dharmafly
-// @description     AllSizes is a (Greasemonkey) userscript for Flickr, to give better access to Flickr photos: HTML for the various sizes, URLs, downloads.
-// @namespace       dharmafly.com
-// @author          Premasagar Rose, http://premasagar.com
-// @identifier      http://dharmafly.com/projects/allsizes/allsizes.user.js
+// @description     AllSizes is a (Greasemonkey) userscript to give better access to Flickr photos: HTML and BBCode for the different image sizes, URLs, downloads and more.
 // @version         2.0.0
-// @date            2010-07-27
+
+// @namespace       http://dharmafly.com
+// @copyright       2010+, Premasagar Rose (http://premasagar.com)
+// @license         MIT license; http://opensource.org/licenses/mit-license.php
 
 
+/*!
+* Flickr AllSizes, by Dharmafly
+*
+*   discuss:
+*       flickr.com/groups/flickrhacks/discuss/72157594303798688/
+*
+*   latest version:
+*       userscripts.org/scripts/source/6178.user.js
+*       dharmafly.com/projects/allsizes/allsizes.user.js (mirror)
+*
+*   fave the app in the Flickr App Garden:
+*       flickr.com/services/apps/34760/
+*
+*   userscript hosting:
+*       userscripts.org/scripts/show/6178
+*
+*   source code repository:
+*       github.com/premasagar/allsizes/
+*/
+
+
+// Execute on a Flickr photo page:
+//
 // @include         http://www.flickr.com/photos/*/*
 //
 // @exclude         http://www.flickr.com/photos/organize/*
@@ -31,42 +54,15 @@
 // ==/UserScript==
 
 
-/*!
-* AllSizes
-*   discuss:
-*       flickr.com/groups/flickrhacks/discuss/72157594303798688/
-*
-*   userscript hosting:
-*       userscripts.org/scripts/show/6178
-*
-*   source code:
-*       github.com/premasagar/allsizes/
-*
-*   latest version:
-*       userscripts.org/scripts/source/6178.user.js
-*       dharmafly.com/projects/allsizes/allsizes.user.js (mirror)
-*
-*   fave the app in the Flickr App Garden:
-*       flickr.com/services/apps/34760/
-*
-*//*
-    AllSizes is a (Greasemonkey) UserScript for Flickr, to give better access to Flickr photos: HTML for the various sizes, URLs, downloads.
-
-    by Premasagar Rose
-        dharmafly.com
-
-    license
-        opensource.org/licenses/mit-license.php
-
-*/
-
 "use strict";
 
 (function(){
     var userscript = {
             id: 'dharmafly-allsizes',
 	        name: 'AllSizes',
-	        version: '2.0.0'
+	        version: '2.0.0',
+	        update_url: 'http://assets.dharmafly.com/allsizes/manifest.json',
+	        codebase: 'http://userscripts.org/scripts/source/6178.user.js'
         },
         ns = userscript.id,
         day = 24 * 60 * 60 * 1000,
@@ -454,14 +450,14 @@
     }
     
     function latestUserscript(callback){
-        var url = 'http://assets.dharmafly.com/allsizes/version.json',
+        var url = userscript.update_url,
             query = 'select * from json where url="' + url + '"',
             latest = cache('latestUserscript'),
             now = (new Date()).getTime(),
             lastModified,
             cacheAndCallback = function(data){
-                if (data && data.query && data.query.results && data.query.results.userscript){
-                    latest = data.query.results.userscript;
+                if (data && data.query && data.query.results){
+                    latest = data.query.results;
                     _('latestUserscript: from remote store: ', latest);
                     cache('latestUserscript', latest);
                     callback(latest);
