@@ -454,7 +454,7 @@
     }
     
     function latestUserscript(callback){
-        var url = 'http://code.dharmafly.com/allsizes/version.json',
+        var url = 'http://assets.dharmafly.com/allsizes/version.json',
             query = 'select * from json where url="' + url + '"',
             latest = cache('latestUserscript'),
             now = (new Date()).getTime(),
