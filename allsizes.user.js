@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name            Flickr AllSizes, by Dharmafly
+// @description     AllSizes is a (Greasemonkey) userscript for Flickr, to give better access to Flickr photos: HTML for the various sizes, URLs, downloads.
 // @namespace       dharmafly.com
-// @description     AllSizes is a (Greasemonkey) UserScript for Flickr, to give better access to Flickr photos: HTML for the various sizes, URLs, downloads.
-// @author          Premasagar Rose <http://premasagar.com>
+// @author          Premasagar Rose, http://premasagar.com
 // @identifier      http://dharmafly.com/projects/allsizes/allsizes.user.js
 // @version         2.0.0
 // @date            2010-07-27
@@ -57,8 +57,6 @@
 
     license
         opensource.org/licenses/mit-license.php
-        
-    v2.0.0
 
 */
 
@@ -96,7 +94,8 @@
         var
             window = this,
             console = window.console,
-            opera = window.opera;
+            opera = window.opera,
+            log;
         
         // Doesn't support console API
         if (!console){
@@ -126,22 +125,25 @@
                  function(){};
         }
         else if (console.log){
-            return function(){
-                var i = 0,
-                    args = arguments,
-                    len = args.length,
-                    arr = [];
-                
-                if (len === 1){
-                    console.log(args[i]);
-                }
-                else if (len > 1){
-                    for (; i < len; i++){
-                        arr.push(args[i]);
-                    }
-                    console.log(arr);
-                }
-            };
+            log = console.log;
+            if (typeof log.apply === 'function'){
+                return function(){
+                    log.apply(console, arguments);
+                };
+	        }
+	        else { // IE8
+	            return function(){
+	                var args = arguments,
+	                    argLen = args.length,
+	                    indent = '',
+	                    i = 0;
+	                    
+	                for (; i < argLen; i++){
+		                log(indent + args[i]);
+                        indent = '---- ';
+	                }
+	            };
+	        }
 	    }
     }());
     
