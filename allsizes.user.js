@@ -4,33 +4,34 @@
 // @version         2.0.0
 
 // @namespace       http://dharmafly.com
+// @df:project      http://dharmafly.com/projects/allsizes/
 // @copyright       2010+, Premasagar Rose (http://premasagar.com)
 // @license         MIT license; http://opensource.org/licenses/mit-license.php
 
 
 /*!
-* Flickr AllSizes, by Dharmafly
+* ==Further Info==
 *
 *   discuss:
 *       flickr.com/groups/flickrhacks/discuss/72157594303798688/
 *
+*   fave the app in the Flickr App Garden:
+*       flickr.com/services/apps/34760/
+*
 *   latest version:
 *       userscripts.org/scripts/source/6178.user.js
 *       dharmafly.com/projects/allsizes/allsizes.user.js (mirror)
-*
-*   fave the app in the Flickr App Garden:
-*       flickr.com/services/apps/34760/
 *
 *   userscript hosting:
 *       userscripts.org/scripts/show/6178
 *
 *   source code repository:
 *       github.com/premasagar/allsizes/
-*/
+*
+¡*/
 
 
-// Execute on a Flickr photo page:
-//
+// Activate on a Flickr photo page
 // @include         http://www.flickr.com/photos/*/*
 //
 // @exclude         http://www.flickr.com/photos/organize/*
@@ -58,11 +59,12 @@
 
 (function(){
     var userscript = {
-            id: 'dharmafly-allsizes',
-	        name: 'AllSizes',
+            name: 'AllSizes',
+	        id: 'dharmafly-allsizes',
 	        version: '2.0.0',
 	        update_url: 'http://assets.dharmafly.com/allsizes/manifest.json',
-	        codebase: 'http://userscripts.org/scripts/source/6178.user.js'
+	        codebase: 'http://userscripts.org/scripts/source/6178.user.js',
+            discuss: 'http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/'
         },
         ns = userscript.id,
         day = 24 * 60 * 60 * 1000,
