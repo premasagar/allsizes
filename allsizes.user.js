@@ -374,10 +374,10 @@
                 storageWrapper = function (key, value){
                     if (typeof value === 'undefined'){
                         value = storageWrapper.get(key);
-                        _('cache GET: ' + key, typeof value === 'string' ? value.slice(0, 100) : value);
+                        _('CACHE GET: ' + key, typeof value === 'string' ? value.slice(0, 100) : value);
                         return value;
                     }
-                    _('cache SET: ' + key, value);
+                    _('CACHE SET: ' + key, value);
                     return storageWrapper.set(key, value);
                 };
                 // extend wrapper function with cacheCore methods
@@ -556,13 +556,14 @@
                 embedInner: '#share-menu-options-embed .share-menu-options-inner',
                 embedContainer: '#share-menu-options-embed .sharing_embed_cont',
                 embedForm: '#sharing-get-html-form',
-                embedTextareas: '#share-menu-options-embed .sharing_embed_cont textarea',
-                currentTextarea: '#share-menu-options-embed .sharing_embed_cont textarea:visible',
+                embedTextareas: '#share-menu-options-embed textarea.embed-markup',
                 imageSizeSelect: '#sharing_size'
             },
             
             shareOptionsOpen = 'share-menu-options-open',
             allsizesToggleId = ns + '-toggle',
+            buttonNormal = 'Butt',
+            buttonDisabled = 'DisabledButt',
             
             // CSS styles
             css = '' +
@@ -628,20 +629,43 @@
             });
         }
         
+        // Lookup the abbreviation for an image size (the key corresponds to the image size selectbox options; the value corresponds to the textarea id suffixes
+        function imageSizeAbbr(imageSize){
+            return {
+                "Square": "sq",
+                "Thumbnail": "t",
+                "Small": "s",
+                "Medium": "m",
+                "Medium 640": "z",
+                "Large": "l",
+                "Original": "o"
+            }[imageSize];
+        }
+        
         // Change the image size selectbox to the last used size
         function imageSelector(imageSize){
-            _('imageSelector: setting to ', imageSize);
+            _('Cached image size: ', imageSize);
             if (imageSize){
                 window.setTimeout(function(){
-                    // If the requested value exists, apply it to the selectbox
-                    if (imageSizeSelect.find('option[value=' + imageSize + ']').length){
-                        _('changing image size selectbox to: ' + imageSize);
-                        imageSizeSelect.val(imageSize);
+                    var abbr;
+                
+                    // If the requested value does not exist, use the largest option available
+                    if (!imageSizeSelect.find('option[value=' + imageSize + ']').length){
+                        _('Cached image size not available. Using the largest available.');
+                        imageSize = imageSizeSelect.find('option:last').attr('value'); // NOTE: .attr('value') is used instead of .val() because jQuery 1.3.2 + FF 3.6.8 erroneously passes the text content and not the value attribute
                     }
-                    // open the largest option available
-                    else {
-                        _('changing image size selectbox to largest available');
-                        imageSizeSelect.val(imageSizeSelect.find('option:last').attr('value')); // NOTE: .attr('value') is used instead of .val() because jQuery 1.3.2 + FF 3.6.8 erroneously passes the text content and not the value attribute
+                    // Apply the image size to the selectbox
+                    _('Changing image size selectbox to: ' + imageSize);
+                    imageSizeSelect.val(imageSize);
+                    
+                    // Change the displayed textarea
+                    abbr = imageSizeAbbr(imageSize);
+                    if (abbr){
+                        _('Changing embed code textarea to: ' + abbr);
+                        embedTextareas
+                            .hide()
+                            .filter('[id$=-' + abbr + ']') // the textarea that has an id ending with the image size abbr
+                                .show();
                     }
                 }, 50);
             }
@@ -651,7 +675,7 @@
         function initImageSelectorCaching(){
             _('Setting up image size caching');
             imageSizeSelect.change(function(){
-                cache('imageSize', imageSizeSelect.attr('value'));
+                cache('imageSize', imageSizeSelect.attr('value')); // NOTE: .attr('value') is used instead of .val() because jQuery 1.3.2 + FF 3.6.8 erroneously passes the text content and not the value attribute
             });
         }
         
@@ -710,32 +734,32 @@
         }
         
         // When the "Share" button is clicked, open the menu at the last viewed menu option
-        shareBtn.one('click', function(){
-            _('Share button clicked. Setting up menu...');
-            
-            // Add CSS to head
-            addCss(css);
-            
-            // Cached menu position image size
-            menuPosition(menuOption);
-            initMenuPositionCaching();
-            imageSelector(imageSize);
-            initImageSelectorCaching();
-            
-            // Append the toggle code, for user to change from HTML to BBCode, etc
-            embedInner.append(toggleCode);
-            initToggleCodeBehaviour();
-            
-            _('...finished setting up menu');
-        });
-            
+        shareBtn
+            .removeClass(buttonDisabled)
+            .addClass(buttonNormal)
+            .one('click', function(){
+                _('Share button clicked. Setting up menu...');
+                
+                // Add CSS to head
+                addCss(css);
+                
+                // Cached menu position image size
+                menuPosition(menuOption);
+                initMenuPositionCaching();
+                imageSelector(imageSize);
+                initImageSelectorCaching();
+                
+                // Append the toggle code, for user to change from HTML to BBCode, etc
+                embedInner.append(toggleCode);
+                initToggleCodeBehaviour();
+            });
     }
     
     // end CORE FUNCTIONS
     
     // INITIALISE
     /* Sticky debug mode: uncomment the next line once */
-    cache('debug', true);
+    // cache('debug', true);
     
     if (cache('debug')){
         _ = consoleDebug;
