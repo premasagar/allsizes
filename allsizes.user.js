@@ -95,10 +95,8 @@
     consoleDebug = (function(){
         var
             window = this,
-            ua = window.navigator.userAgent,
             console = window.console,
-            opera = window.opera,
-            debug, log;
+            opera = window.opera;
         
         // Doesn't support console API
         if (!console){
@@ -127,50 +125,23 @@
                  } :
                  function(){};
         }
-        else {
-            debug = console.debug;
-            
-            if (debug){
-                // WebKit complains if console's debug function is called on its own
-                if (/webkit/i.test(ua)){
-                    return function(){
-                        var i = 0,
-                            args = arguments,
-                            len = args.length,
-                            arr = [];
-                        
-                        if (len === 1){
-                            console.log(args[i]);
-                        }
-                        else if (len > 1){
-                            for (; i < len; i++){
-                                arr.push(args[i]);
-                            }
-                            console.log(arr);
-                        }
-                    };
+        else if (console.log){
+            return function(){
+                var i = 0,
+                    args = arguments,
+                    len = args.length,
+                    arr = [];
+                
+                if (len === 1){
+                    console.log(args[i]);
                 }
-                return debug;
-            }
-            if (log){ // old WebKit
-                if (typeof log.apply === 'function'){
-                    return function(){
-                        log.apply(console, arguments);
-                    };
+                else if (len > 1){
+                    for (; i < len; i++){
+                        arr.push(args[i]);
+                    }
+                    console.log(arr);
                 }
-                else { // IE8
-                    return function(){
-                        var argLen = arguments.length,
-                            indent = '',
-                            i;
-                            
-                        for (i=0; i < argLen; i++){
-	                        log(indent + args[i]);
-                            indent = '---- ';
-                        }
-                    };
-                }
-            }
+            };
 	    }
     }());
     
@@ -360,7 +331,6 @@
     
     cacheToLocalStorage = {
         getWrapper: function(key){
-            _('getWrapper', key);
             var nsKey = ns + '-' + key,
                 wrapper = localStorage.getItem(nsKey); // FF3.6.8 observed to fail when given localStorage[key]
                 
@@ -482,8 +452,6 @@
     }
     
     function latestUserscript(callback){
-        _(9);
-        _(cache('latestUserscript'));
         var url = 'http://code.dharmafly.com/allsizes/version.json',
             query = 'select * from json where url="' + url + '"',
             latest = cache('latestUserscript'),
@@ -492,7 +460,7 @@
             cacheAndCallback = function(data){
                 if (data && data.query && data.query.results && data.query.results.userscript){
                     latest = data.query.results.userscript;
-                    _('latestUserscript: from remote store', latest);
+                    _('latestUserscript: from remote store: ', latest);
                     cache('latestUserscript', latest);
                     callback(latest);
                 }
@@ -501,7 +469,7 @@
                     latestUserscriptVersionAlt(function(v){
                         if (v){ // apply the latest version to the existing meta data
                             latest = jQuery.extend({}, userscript, {version:v});
-                            _('latestUserscript: from alt store', latest);
+                            _('latestUserscript: from alt store: ', latest);
                             cache('latestUserscript', latest);
                             callback(latest);
                         }
@@ -519,7 +487,7 @@
                 yql(query, cacheAndCallback);
             }
             else {
-                _('latestUserscript: retrieved from cache', latest);
+                _('latestUserscript: retrieved from cache: ', latest);
                 callback(latest);
             }
         }
@@ -621,7 +589,6 @@
             defaultMenuOption,
             imageSize = cache('imageSize');
         
-        
         // DOM manipulation
         
         // When the "Share" button is clicked, open the menu at the last viewed menu option
@@ -643,12 +610,15 @@
             if (imageSize){
                 window.setTimeout(function(){
                     // If the requested value exists, apply it to the selectbox
+                    _('imageSizeSelect', imageSizeSelect.find('option[value=' + imageSize + ']'));
                     if (imageSizeSelect.find('option[value=' + imageSize + ']').length){
+                        _('changing image size selectbox to: ' + imageSize);
                         imageSizeSelect.val(imageSize);
                     }
                     // open the largest option available
                     else {
-                        imageSizeSelect.val(imageSizeSelect.find('option:last').val());
+                        _('changing image size selectbox to largest available');
+                        imageSizeSelect.val(imageSizeSelect.find('option:last').attr('value')); // NOTE: .attr('value') is used instead of .val() because jQuery 1.3.2 + FF 3.6.8 erroneously passes the text content and not the value attribute
                     }
                 }, 50);
             }
@@ -670,7 +640,7 @@
         
         // Cache the most recently changed image size
         imageSizeSelect.change(function(){
-            cache('imageSize', imageSizeSelect.val());
+            cache('imageSize', imageSizeSelect.attr('value'));
         });
         
         // Add CSS to head
