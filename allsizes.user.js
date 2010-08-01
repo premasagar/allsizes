@@ -519,6 +519,7 @@
     }
     
     function addCss(css){
+        _('addCss: ', css);
         jQuery('head').append('<style>' + css + '</style>');
     }
     
@@ -540,7 +541,7 @@
         
         var
             // DOM selectors
-            // TODO: DRY
+            // TODO: DRY, and only setup on Share menu open
             dom = {
                 shareBtn: '#button-bar-share',
                 shareOptions: '#share-menu .share-menu-options',
@@ -561,7 +562,7 @@
             },
             
             shareOptionsOpen = 'share-menu-options-open',
-            allsizesToggleId = 'dharmafly-allsizes-toggle',
+            allsizesToggleId = ns + '-toggle',
             
             // CSS styles
             css = '' +
@@ -593,9 +594,9 @@
         
         // DOM manipulation
         
-        // When the "Share" button is clicked, open the menu at the last viewed menu option
-        shareBtn.one('click', function(){
-            _('Share button clicked');        
+        // Change the menu position to the menu last opened - or to "Grab the HTML" menu
+        function menuPosition(menuOption){
+            _('menuPosition: setting to ', menuOption || dom.embedOption);
             if (menuOption){
                 defaultMenuOption = jQuery('#' + menuOption);
             }
@@ -608,11 +609,31 @@
                 // Apply our own option
                 defaultMenuOption.addClass(shareOptionsOpen);
             }
-            // Change the image size selectbox to the cached size
+        }
+        
+        // Cache the menu position, when the position is changed
+        function initMenuPositionCaching(){
+            _('Setting up menu position caching');
+            shareHeaders.click(function(){
+                var menu = jQuery(this).parents('.share-menu-options');
+                // set timeout to allow time for combo box to change the classnames
+                window.setTimeout(function(){
+                    var id;
+                    if (menu.hasClass(shareOptionsOpen)){
+                        id = menu.attr('id');
+                        _('caching the most recently clicked menu option', id);
+                        cache('menuOption', id);
+                    }
+                }, 1500);
+            });
+        }
+        
+        // Change the image size selectbox to the last used size
+        function imageSelector(imageSize){
+            _('imageSelector: setting to ', imageSize);
             if (imageSize){
                 window.setTimeout(function(){
                     // If the requested value exists, apply it to the selectbox
-                    _('imageSizeSelect', imageSizeSelect.find('option[value=' + imageSize + ']'));
                     if (imageSizeSelect.find('option[value=' + imageSize + ']').length){
                         _('changing image size selectbox to: ' + imageSize);
                         imageSizeSelect.val(imageSize);
@@ -624,82 +645,90 @@
                     }
                 }, 50);
             }
-        });
-        
-        // Cache the most recently opened menu option
-        shareHeaders.click(function(){
-            var menu = jQuery(this).parents('.share-menu-options');
-            // set timeout to allow time for combo box to change the classnames
-            window.setTimeout(function(){
-                var id;
-                if (menu.hasClass(shareOptionsOpen)){
-                    id = menu.attr('id');
-                    _('caching the most recently clicked menu option', id);
-                    cache('menuOption', id);
-                }
-            }, 1500);
-        });
-        
-        // Cache the most recently changed image size
-        imageSizeSelect.change(function(){
-            cache('imageSize', imageSizeSelect.attr('value'));
-        });
-        
-        // Add CSS to head
-        addCss(css);
-        
-        // Append the toggle code, for user to change from HTML to BBCode, etc
-        embedInner.append(toggleCode);
-        
-        toggleCode.click(function(){
-            var mode = toggleCode.text(),
-                header = embedHeader.data('content'),
-                bbcode;
-                
-            if (!header){
-                header = embedHeader.html();
-                embedHeader.data('content', header);
-            }
-            
-            embedTextareas.each(function(i, textarea){
-                var t = jQuery(textarea),
-                    html = t.data('html');
-            
-                if (!html){
-                    html = t.val();
-                    t.data('html', html); // cache html
-                }
-                
-                switch(mode){
-                    case 'html':
-                    t.val(html);
-                    embedHeader.html(header);
-                    toggleCode.text('bbcode');
-                    break;
-                    
-                    case 'bbcode':
-                    bbcode = t.data('bbcode');
-                    if (!bbcode){
-                        bbcode = toBbcode(html);
-                        t.data('bbcode', bbcode);
-                    }
-                    t.val(bbcode);
-                    embedHeader.html(header.replace(/>[^>]*$/, '> Grab the BBCode'));
-                    toggleCode.text('html');
-                    break;
-                }
-            });
-            // Cache the mode for next page load
-            cache('mode', mode);
-            return false;
-        });
-        
-        // Check if mode was previously cached
-        if (mode){
-            toggleCode
-                .text(mode)
-                .click();
         }
+        
+        // Cache the image size when the size selector is changed
+        function initImageSelectorCaching(){
+            _('Setting up image size caching');
+            imageSizeSelect.change(function(){
+                cache('imageSize', imageSizeSelect.attr('value'));
+            });
+        }
+        
+        function initToggleCodeBehaviour(){
+            _('Setting up toggle-code behaviour');
+            _('Cached code mode: ', mode);
+            toggleCode.click(function(){
+                var mode = toggleCode.text(),
+                    header = embedHeader.data('content'),
+                    bbcode;
+                    
+                if (!header){
+                    header = embedHeader.html();
+                    embedHeader.data('content', header);
+                }
+                
+                embedTextareas.each(function(i, textarea){
+                    var t = jQuery(textarea),
+                        html = t.data('html');
+                
+                    if (!html){
+                        html = t.val();
+                        t.data('html', html); // cache html
+                    }
+                    
+                    switch(mode){
+                        case 'html':
+                        t.val(html);
+                        embedHeader.html(header);
+                        toggleCode.text('bbcode');
+                        break;
+                        
+                        case 'bbcode':
+                        bbcode = t.data('bbcode');
+                        if (!bbcode){
+                            bbcode = toBbcode(html);
+                            t.data('bbcode', bbcode);
+                        }
+                        t.val(bbcode);
+                        embedHeader.html(header.replace(/>[^>]*$/, '> Grab the BBCode'));
+                        toggleCode.text('html');
+                        break;
+                    }
+                });
+                // Cache the mode for next page load
+                cache('mode', mode);
+                return false;
+            });
+            
+            // Check if mode was previously cached
+            if (mode){
+                toggleCode
+                    .text(mode)
+                    .click();
+            }
+        }
+        
+        // When the "Share" button is clicked, open the menu at the last viewed menu option
+        shareBtn.one('click', function(){
+            _('Share button clicked. Setting up menu...');
+            
+            // Add CSS to head
+            addCss(css);
+            
+            // Cached menu position image size
+            menuPosition(menuOption);
+            initMenuPositionCaching();
+            imageSelector(imageSize);
+            initImageSelectorCaching();
+            
+            // Append the toggle code, for user to change from HTML to BBCode, etc
+            embedInner.append(toggleCode);
+            initToggleCodeBehaviour();
+            
+            _('...finished setting up menu');
+        });
+            
     }
     
     // end CORE FUNCTIONS
