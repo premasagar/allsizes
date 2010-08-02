@@ -260,7 +260,7 @@
             // once it has loaded, grab the contents of the textarea and remove the textarea element
             jsonpScript.addEventListener('load', function(){
                 window.setTimeout(function(){
-                    _('script loaded', callback);
+                    _('jsonp: Script loaded: ', callback.toString().slice(0, 100));
                     var data = delegateTextarea.textContent;
                     if (JSON && JSON.parse){
                         data = JSON.parse(data);
@@ -372,10 +372,10 @@
                 storageWrapper = function (key, value){
                     if (typeof value === 'undefined'){
                         value = storageWrapper.get(key);
-                        _('CACHE GET: ' + key, typeof value === 'string' ? value.slice(0, 100) : value);
+                        _('Cache GET: ' + key, typeof value === 'string' ? value.slice(0, 100) : value);
                         return value;
                     }
-                    _('CACHE SET: ' + key, value);
+                    _('Cache SET: ' + key, value);
                     return storageWrapper.set(key, value);
                 };
                 // extend wrapper function with cacheCore methods
@@ -453,13 +453,14 @@
     
     function latestUserscript(callback){
         var url = userscript.update_url,
+            // select changelog from json where url="http://assets.dharmafly.com/allsizes/manifest.json" and changelog.version > "1.0.0" | sort(field="changelog.version", descending="true");
             query = 'select * from json where url="' + url + '"',
             latest = cache('latestUserscript'),
             now = (new Date()).getTime(),
             lastModified,
             cacheAndCallback = function(data){
-                if (data && data.query && data.query.results){
-                    latest = data.query.results;
+                if (data && data.query && data.query.results && data.query.results.userscript){
+                    latest = data.query.results.userscript;
                     _('latestUserscript: from remote store: ', latest);
                     cache('latestUserscript', latest);
                     callback(latest);
@@ -724,7 +725,7 @@
             });
             
             // Check if mode was previously cached
-            if (mode){
+            if (mode && mode !== 'html'){
                 toggleCode
                     .text(mode)
                     .click();
