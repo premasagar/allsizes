@@ -6,8 +6,8 @@
         "author":       "Premasagar Rose",
         "homepage":     "http://premasagar.com",
         "url":          "http://dharmafly.com/projects/allsizes/",
+        "manifest":   "http://assets.dharmafly.com/allsizes/manifest.json",
         "codebase":     "http://userscripts.org/scripts/source/6178.user.js",
-        "update_url":   "http://assets.dharmafly.com/allsizes/manifest.json",
         "discuss":      "http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/",
         "repository":   "http://github.com/premasagar/allsizes/",
         "changelog": [
@@ -16,7 +16,8 @@
                 "timestamp": "20100803",
                 "description": [
                     "AllSizes v2 released for new Flickr website interface"
-                ]
+                ],
+                "announce": "http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/page4/"
             }
         ]
     }

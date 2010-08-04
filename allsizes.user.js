@@ -62,7 +62,7 @@
             name: 'AllSizes',
 	        id: 'dharmafly-allsizes',
 	        version: '2.0.0',
-	        update_url: 'http://assets.dharmafly.com/allsizes/manifest.json',
+	        manifest: 'http://assets.dharmafly.com/allsizes/manifest.json',
 	        codebase: 'http://userscripts.org/scripts/source/6178.user.js',
             discuss: 'http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/'
         },
@@ -74,6 +74,7 @@
             jquery: 'http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.js'
         },
         window = this,
+        confirm = window.confirm,
         JSON = window.JSON,
         GM_getValue = window.GM_getValue,
         GM_setValue = window.GM_setValue,
@@ -438,6 +439,21 @@
     
     // OTHER FUNCTIONS
     
+    function flickrDiscussionLastPage(url, callback){
+        var flickrBase = 'http://www.flickr.com/',
+            query = 'select href from html where url="' + url + '" and xpath="//div[@id=\'Pages\']//div[@class=\'Paginator\']//a[@href]" | sort(field="href", descending="true") | truncate(count=1)';
+        
+        yql(query, function(data){
+            var url;
+            
+            if (data && data.query && data.query.results && data.query.results.a && data.query.results.a.href){
+                url = data.query.results.a.href;
+                url = url.replace(/^\//, flickrBase);
+            }
+            callback(url ? url : false);
+        });
+    }
+    
     function latestUserscriptVersionAlt(callback){
         _('latestUserscriptVersionAlt: checking latest version from discussion thread');
     
@@ -507,13 +523,21 @@
     }
     
     function checkForUpdates(){
+        _('Checking for updates');
         updateAvailable(function(latest){
-            /*
-            alert(avail ?
-                "A new update is available" :
-                "There is no new update available"
-            );
-            */
+            if (latest){
+                flickrDiscussionLastPage(latest.discuss, function(url){
+                    var doUpgrade = confirm(
+                        latest.name + ' (userscript):\n' +
+                        'A new version is available (v' + latest.version + '). Install now?' +
+                        (url ? '\n\nFor more info:\n' + url : '')
+                    );
+                    
+                    if (doUpgrade){
+                        window.location.href = latest.codebase;
+                    }
+                });
+            }
         });
     }
     
@@ -535,7 +559,7 @@
     }
         
     function init(){
-        _('initialising AllSizes');
+        _('initialising ' + userscript.name);
         checkForUpdates();
         
         var
