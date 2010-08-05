@@ -10,7 +10,7 @@
 
 
 /*!
-* ==Further Info==
+* Flickr AllSizes
 *
 *   discuss:
 *       flickr.com/groups/flickrhacks/discuss/72157594303798688/
@@ -80,7 +80,8 @@
         GM_setValue = window.GM_setValue,
         GM_xmlhttpRequest = window.GM_xmlhttpRequest,
         jQuery = window.jQuery,
-        consoleDebug, _, cache, jsonp, cacheCore, cacheToLocalStorage, cacheToGM, localStorage;
+        _ = function(){},
+        debug, consoleDebug, cache, jsonp, cacheCore, cacheToLocalStorage, cacheToGM, localStorage;
         
         
     // DEPENDENCIES
@@ -147,9 +148,10 @@
     }());
     
     // Debugging: turn off logging if not in debug mode
-    _ = window.location && window.location.search.indexOf('allsizesDebug') !== -1 ?
-        consoleDebug :
-        function(){};
+    if (window.location && window.location.search.indexOf('allsizesDebug') !== -1){
+        debug = true;
+        _ = consoleDebug;
+    }
     
     // end DEPENDENCIES
         
@@ -567,6 +569,7 @@
             // TODO: DRY, and only setup on Share menu open
             dom = {
                 shareBtn: '#button-bar-share',
+                shareMenu: '#share-menu',
                 shareOptions: '#share-menu .share-menu-options',
                 shareHeaders: '#share-menu .share-menu-options-header',
                 
@@ -580,7 +583,7 @@
                 embedContainer: '#share-menu-options-embed .sharing_embed_cont',
                 embedForm: '#sharing-get-html-form',
                 embedTextareas: '#share-menu-options-embed textarea.embed-markup',
-                imageSizeSelect: '#sharing_size'
+                imageSizeSelect: '.share-menu-options-inner select[name=sharing_size]'
             },
             
             shareOptionsOpen = 'share-menu-options-open',
@@ -592,10 +595,11 @@
             css = '' +
                 dom.embedInner + '{overflow:auto !important;}' +
                 dom.embedForm + '{float:left !important;}' +
-                '#' + allsizesToggleId + ' {font-size:11px; float:right; padding:4px;}',
+                '#' + allsizesToggleId + ' {font-size:11px; float:right; padding:3px;}',
             
             // DOM elements
             shareBtn = jQuery(dom.shareBtn),
+            shareMenu = jQuery(dom.shareMenu),
             shareOptions = jQuery(dom.shareOptions),
             shareHeaders = jQuery(dom.shareHeaders),
             
@@ -604,10 +608,12 @@
             emailInner = jQuery(dom.emailInner),
             
             embedOption = jQuery(dom.embedOption),
+            imageOption = embedOption.clone(),
             embedHeader = jQuery(dom.embedHeader),
             embedInner = jQuery(dom.embedInner),
             embedTextareas = jQuery(dom.embedTextareas),
-            imageSizeSelect = jQuery(dom.imageSizeSelect),
+            imageSizeSelect = jQuery(dom.imageSizeSelect, shareMenu)
+                .add(imageOption.find(dom.imageSizeSelect, imageOption)),
             
             toggleCode = jQuery('<a id="' + allsizesToggleId + '" href="#allsizes-toggle">bbcode</a>'),
             
@@ -617,6 +623,20 @@
             imageSize = cache('imageSize');
         
         // DOM manipulation
+        
+        // The new "Grab the Image" menu option
+        imageOption
+            .find('textarea, .sharing_embed_cont')
+                .remove()
+                .end()
+            .find('.share-menu-options-header')
+                .html('<span class="caret"></span> Grab the image')
+                .end()
+            .find('[id]')
+                .attr('id', null)
+                .end()
+            .attr('id', null)
+            .insertAfter(embedOption);
         
         // Change the menu position to the menu last opened - or to "Grab the HTML" menu
         function menuPosition(menuOption){
@@ -785,6 +805,7 @@
     // cache('debug', true);
     
     if (cache('debug')){
+        debug = true;
         _ = consoleDebug;
         _('/*! ' + userscript.name + '\n*   v' + userscript.version + ' (userscript)\n*/');
     }
@@ -801,7 +822,11 @@
                 jQuery = window.jQuery.noConflict(true);
             }
             if (jQuery){
-                _('jQuery loaded', jQuery);
+                _('jQuery loaded');
+                
+                if (debug){
+                    jQuery('body').append('<script src="' + url.jquery + '"></script>');
+                }
                 init();
             }
             else {
