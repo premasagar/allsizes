@@ -559,6 +559,18 @@
         
         return bb;
     }
+    
+    function imageSrc(html){
+        var match;
+        if (!html){
+            html = embedHeader.data('defaultHtml', defaultHtml);
+        }
+        if (!html){
+            html = embedHeader.html() || '';
+        }
+        match = html.match(/<img [^>]*src=['"]([^'"]+)['"][^>]*>/);
+        return match ? match[0] : '';
+    }
         
     function init(){
         _('initialising ' + userscript.name);
@@ -583,7 +595,10 @@
                 embedContainer: '#share-menu-options-embed .sharing_embed_cont',
                 embedForm: '#sharing-get-html-form',
                 embedTextareas: '#share-menu-options-embed textarea.embed-markup',
-                imageSizeSelect: '.share-menu-options-inner select[name=sharing_size]'
+                imageSizeSelect: '.share-menu-options-inner select[name=sharing_size]',
+                inputCodeType: '.share-menu-options-inner input[name=code-type][type=radio]',
+                inputCodeTypeHtml: '.share-menu-options-inner input[name=code-type][type=radio][value=html]',
+                inputCodeTypeBBCode: '.share-menu-options-inner input[name=code-type][type=radio][value=BBCode]'
             },
             
             shareOptionsOpen = 'share-menu-options-open',
@@ -613,11 +628,15 @@
             embedInner = jQuery(dom.embedInner),
             embedTextareas = jQuery(dom.embedTextareas),
             imageSizeSelect = jQuery(dom.imageSizeSelect, shareMenu)
-                .add(imageOption.find(dom.imageSizeSelect, imageOption)),
+                .add(imageOption.find(dom.imageSizeSelect)),
+            inputCodeType = jQuery(dom.inputCodeType),
+            inputCodeTypeHtml = jQuery(dom.inputCodeTypeHtml),
+            inputCodeTypeBBCode = jQuery(dom.inputCodeTypeBBCode),
             
-            toggleCode = jQuery('<a id="' + allsizesToggleId + '" href="#allsizes-toggle">bbcode</a>'),
+            // Add toggle link
+            // toggleCode = jQuery('<a id="' + allsizesToggleId + '" href="#allsizes-toggle">bbcode</a>'),
             
-            mode = cache('mode'),
+            codeType = cache('codeType'),
             menuOption = cache('menuOption'),
             defaultMenuOption,
             imageSize = cache('imageSize');
@@ -626,7 +645,8 @@
         
         // The new "Grab the Image" menu option
         imageOption
-            .find('textarea, .sharing_embed_cont')
+            .attr('id', ns + '-share-menu-options-image')
+            .find('textarea, .sharing_embed_cont, [id=code-types]')
                 .remove()
                 .end()
             .find('.share-menu-options-header')
@@ -635,7 +655,10 @@
             .find('[id]')
                 .attr('id', null)
                 .end()
-            .attr('id', null)
+            .find('form')
+                .prepend('<input type="text" value="" id="' + ns + '-share-menu-options-image-input" onfocus="this.select();">')
+                .after('<a href="#download-link" id="' + ns + 'download-link">download</a><a href="#view-image" id="' + ns + 'view-image">view image</a>')
+                .end()
             .insertAfter(embedOption);
         
         // Change the menu position to the menu last opened - or to "Grab the HTML" menu
@@ -658,6 +681,8 @@
         // Cache the menu position, when the position is changed
         function initMenuPositionCaching(){
             _('Setting up menu position caching');
+            // Reapply dom selector, to include imageOption header
+            shareHeaders = jQuery(dom.shareHeaders);
             shareHeaders.click(function(){
                 var menu = jQuery(this).parents('.share-menu-options');
                 // set timeout to allow time for combo box to change the classnames
@@ -687,30 +712,58 @@
         
         // Change the image size selectbox to the last used size
         function imageSelector(imageSize){
+            var defaultImageSize = 'Medium',
+                count = 0,
+                interval = 250,
+                intervalMax = 10000,
+                intervalRef, intervalCleared;
+        
             _('Cached image size: ', imageSize);
-            if (imageSize){
-                window.setTimeout(function(){
-                    var abbr;
+            if (imageSize && imageSize !== defaultImageSize){
+                // If the requested value does not exist, use the largest option available
+                if (!imageSizeSelect.find('option[value=' + imageSize + ']').length){
+                    _('Cached image size not available. Using the largest available.');
+                    imageSize = imageSizeSelect.find('option:last').attr('value'); // NOTE: .attr('value') is used instead of .val() because jQuery 1.3.2 + FF 3.6.8 erroneously passes the text content and not the value attribute
+                }
+                // Apply the image size to the selectbox
+                _('Changing image size selectbox to: ' + imageSize);
+                imageSizeSelect.val(imageSize);
                 
-                    // If the requested value does not exist, use the largest option available
-                    if (!imageSizeSelect.find('option[value=' + imageSize + ']').length){
-                        _('Cached image size not available. Using the largest available.');
-                        imageSize = imageSizeSelect.find('option:last').attr('value'); // NOTE: .attr('value') is used instead of .val() because jQuery 1.3.2 + FF 3.6.8 erroneously passes the text content and not the value attribute
-                    }
-                    // Apply the image size to the selectbox
-                    _('Changing image size selectbox to: ' + imageSize);
-                    imageSizeSelect.val(imageSize);
+                /*
+                // Annoyingly, a JS file, combo.gne is fired after a short time, and it rests the image size selector
+                intervalRef = window.setInterval(function(){
+                    _('Waiting for combo JS to kick in', count);
+                    count += interval;
                     
-                    // Change the displayed textarea
-                    abbr = imageSizeAbbr(imageSize);
-                    if (abbr){
-                        _('Changing embed code textarea to: ' + abbr);
-                        embedTextareas
-                            .hide()
-                            .filter('[id$=-' + abbr + ']') // the textarea that has an id ending with the image size abbr
-                                .show();
+                    // Stop setInterval if max is reached, or combo kicks in
+                    if (count >= intervalMax || imageSizeSelect.val() !== imageSize){
+                        imageSizeSelect.val(imageSize);
+                        window.clearInterval(intervalRef);
+                        intervalCleared = true;
                     }
-                }, 50);
+                }, interval);
+                
+                // Stop setInterval if selector is clicked
+                imageSizeSelect.one('click', function(){
+                    if (!intervalCleared){
+                        window.clearInterval(intervalRef);
+                        intervalCleared = true;
+                    }
+                });
+                */
+                changeEmbedTextarea(imageSize);
+            }
+        }
+        
+        function changeEmbedTextarea(imageSize){
+            // Change the displayed textarea
+            var abbr = imageSizeAbbr(imageSize);
+            if (abbr){
+                _('Changing embed code textarea to: ' + abbr);
+                embedTextareas
+                    .hide()
+                    .filter('[id$=-' + abbr + ']') // the textarea that has an id ending with the image size abbr
+                        .show();
             }
         }
         
@@ -718,10 +771,68 @@
         function initImageSelectorCaching(){
             _('Setting up image size caching');
             imageSizeSelect.change(function(){
-                cache('imageSize', imageSizeSelect.attr('value')); // NOTE: .attr('value') is used instead of .val() because jQuery 1.3.2 + FF 3.6.8 erroneously passes the text content and not the value attribute
+                var newValue = jQuery(this).attr('value'); // NOTE: .attr('value') is used instead of .val() because jQuery 1.3.2 + FF 3.6.8 erroneously passes the text content and not the value attribute
+                cache('imageSize', newValue);
+                // set all selectors to this size
+                imageSizeSelect.val(newValue);
+                changeEmbedTextarea(newValue);
             });
         }
         
+        function initCodeTypeChanger(){
+            _('Cached codeType: ', codeType);
+            
+            // Check if mode was previously cached
+            if (codeType){
+                if (codeType !== 'html'){
+                    changeCodeType(codeType);
+                }
+            
+                // Change the radio
+                inputCodeType.each(function(){
+                    var self = jQuery(this),
+                        attr = (self.val() === codeType ? 'checked' : '');
+                    self.attr('checked', attr);
+                });
+            }
+            else {
+                codeType = 'html';
+            }
+            
+            inputCodeType.click(function(){
+                var codeType = inputCodeType.filter(':checked').val();
+                changeCodeType(codeType);
+            });
+        }
+        
+        function changeCodeType(newCodeType){
+            _('changeCodeType', newCodeType, codeType);
+            
+            var defaultHtml = embedHeader.data('defaultHtml'),
+                bbcode;
+            
+            codeType = newCodeType;
+            
+            // Cache the codeType for next page load
+            cache('codeType', codeType);
+                
+            if (!defaultHtml){
+                defaultHtml = embedHeader.html();
+                embedHeader.data('defaultHtml', defaultHtml);
+            }
+            
+            switch (codeType){
+                case 'html':
+                embedHeader.html(defaultHtml);
+                break;
+            
+                case 'BBCode':
+                embedHeader.html('<span class="caret"></span> Grab the BBCode');
+                break;
+            }
+        }
+        
+        /*
         function initToggleCodeBehaviour(){
             _('Setting up toggle-code behaviour');
             _('Cached code mode: ', mode);
@@ -775,6 +886,8 @@
                     .click();
             }
         }
+        */
+        
         
         // When the "Share" button is clicked, open the menu at the last viewed menu option
         shareBtn
@@ -786,15 +899,22 @@
                 // Add CSS to head
                 addCss(css);
                 
-                // Cached menu position image size
-                menuPosition(menuOption);
-                initMenuPositionCaching();
-                imageSelector(imageSize);
-                initImageSelectorCaching();
+                // Wait for UI to update
+                window.setTimeout(function(){
+                    menuPosition(menuOption);
+                    initMenuPositionCaching();
+                    imageSelector(imageSize);
+                    initImageSelectorCaching();
+                    initCodeTypeChanger();
+                }, 50);
                 
                 // Append the toggle code, for user to change from HTML to BBCode, etc
+                
+                // TEMP:
+                /*
                 embedInner.append(toggleCode);
                 initToggleCodeBehaviour();
+                */
             });
     }
     
