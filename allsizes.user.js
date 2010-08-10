@@ -559,18 +559,6 @@
         
         return bb;
     }
-    
-    function imageSrc(html){
-        var match;
-        if (!html){
-            html = embedHeader.data('defaultHtml', defaultHtml);
-        }
-        if (!html){
-            html = embedHeader.html() || '';
-        }
-        match = html.match(/<img [^>]*src=['"]([^'"]+)['"][^>]*>/);
-        return match ? match[0] : '';
-    }
         
     function init(){
         _('initialising ' + userscript.name);
@@ -660,6 +648,23 @@
                 .after('<a href="#download-link" id="' + ns + 'download-link">download</a><a href="#view-image" id="' + ns + 'view-image">view image</a>')
                 .end()
             .insertAfter(embedOption);
+            
+        
+        function initImageSrc(){   
+            var imageInput = jQuery('#' + ns + '-share-menu-options-image-input'),
+                imageSize = currentImageSize();
+                
+            if (imageSize){
+                imageInput.val(imageSrc(imageSize));
+            }
+        }
+    
+        function imageSrc(imageSize){
+            var ta = embedTextarea(imageSize),
+                val = ta ? ta.val() : '',
+                match = val.match(/<img [^>]*src=['"]([^'"]+)['"][^>]*>/);
+            return match ? match[1] : '';
+        }
         
         // Change the menu position to the menu last opened - or to "Grab the HTML" menu
         function menuPosition(menuOption){
@@ -710,60 +715,40 @@
             }[imageSize];
         }
         
+        function currentImageSize(){
+            return imageSizeSelect.eq(0).find('option:last').attr('value'); // NOTE: .attr('value') is used instead of .val() because jQuery 1.3.2 + FF 3.6.8 erroneously passes the text content and not the value attribute
+        }
+        
         // Change the image size selectbox to the last used size
         function imageSelector(imageSize){
-            var defaultImageSize = 'Medium',
-                count = 0,
-                interval = 250,
-                intervalMax = 10000,
-                intervalRef, intervalCleared;
+            var defaultImageSize = 'Medium';
         
             _('Cached image size: ', imageSize);
             if (imageSize && imageSize !== defaultImageSize){
                 // If the requested value does not exist, use the largest option available
                 if (!imageSizeSelect.find('option[value=' + imageSize + ']').length){
                     _('Cached image size not available. Using the largest available.');
-                    imageSize = imageSizeSelect.find('option:last').attr('value'); // NOTE: .attr('value') is used instead of .val() because jQuery 1.3.2 + FF 3.6.8 erroneously passes the text content and not the value attribute
+                    imageSize = currentImageSize();
                 }
-                // Apply the image size to the selectbox
                 _('Changing image size selectbox to: ' + imageSize);
                 imageSizeSelect.val(imageSize);
-                
-                /*
-                // Annoyingly, a JS file, combo.gne is fired after a short time, and it rests the image size selector
-                intervalRef = window.setInterval(function(){
-                    _('Waiting for combo JS to kick in', count);
-                    count += interval;
-                    
-                    // Stop setInterval if max is reached, or combo kicks in
-                    if (count >= intervalMax || imageSizeSelect.val() !== imageSize){
-                        imageSizeSelect.val(imageSize);
-                        window.clearInterval(intervalRef);
-                        intervalCleared = true;
-                    }
-                }, interval);
-                
-                // Stop setInterval if selector is clicked
-                imageSizeSelect.one('click', function(){
-                    if (!intervalCleared){
-                        window.clearInterval(intervalRef);
-                        intervalCleared = true;
-                    }
-                });
-                */
                 changeEmbedTextarea(imageSize);
             }
         }
         
-        function changeEmbedTextarea(imageSize){
-            // Change the displayed textarea
+        function embedTextarea(imageSize){
             var abbr = imageSizeAbbr(imageSize);
-            if (abbr){
-                _('Changing embed code textarea to: ' + abbr);
-                embedTextareas
-                    .hide()
-                    .filter('[id$=-' + abbr + ']') // the textarea that has an id ending with the image size abbr
-                        .show();
+            return abbr ?
+                embedTextareas.filter('[id$=-' + abbr + ']') :
+                null;
+        }
+        
+        function changeEmbedTextarea(imageSize){
+            var ta = embedTextarea(imageSize);
+            if (ta){
+                _('Changing displayed embed code textarea to: ' + imageSize);
+                embedTextareas.hide();
+                ta.show();
             }
         }
         
@@ -830,6 +815,17 @@
                 embedHeader.html('<span class="caret"></span> Grab the BBCode');
                 break;
             }
+        }
+        
+        function setSelectBehaviour(){
+            shareMenu.find('textarea, input[type=text]')
+                .focus(function(){
+                    var el = this;
+                    _(el);
+                    window.setTimeout(function(){
+                        el.select();
+                    }, 50);
+                });
         }
         
         /*
@@ -906,6 +902,8 @@
                     imageSelector(imageSize);
                     initImageSelectorCaching();
                     initCodeTypeChanger();
+                    initImageSrc();
+                    setSelectBehaviour();
                 }, 50);
                 
                 // Append the toggle code, for user to change from HTML to BBCode, etc
