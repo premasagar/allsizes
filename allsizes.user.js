@@ -603,21 +603,25 @@
                 inputCodeType: '.share-menu-options-inner input[name=code-type][type=radio]'
             },
             
-            shareOptionsOpen = 'share-menu-options-open',
-            allsizesToggleId = ns + '-toggle',
-            allsizesImageSrcInput = ns + '-share-menu-options-image-input',
-            allsizesDownloadLink = ns + 'download-link',
-            allsizesViewLink = ns + 'view-link',
             buttonNormal = 'Butt',
             buttonDisabled = 'DisabledButt',
+            shareOptionsOpen = 'share-menu-options-open',
+            
+            // Elements created by the userscript
+            allsizesImageOption = ns + '-share-menu-options-image',
+            //allsizesToggleId = ns + '-toggle',
+            allsizesImageLinks = ns + '-image-links',
+            allsizesImageSrcInput = ns + '-share-menu-options-image-input',
+            allsizesDownloadLink = ns + '-download-link',
+            allsizesViewLink = ns + '-view-link',
+            allsizesImageSizeSelect = allsizesImageOption + ' ' + dom.imageSizeSelect,
             
             // CSS styles
-            /*
-            css = '' +
-                dom.embedInner + '{overflow:auto !important;}' +
-                dom.embedForm + '{float:left !important;}' +
-                '#' + allsizesToggleId + ' {font-size:11px; float:right; padding:3px;}',
-            */
+            css = '#' + allsizesImageOption + ' form {width:282px; margin:0;}' +
+                '#' + allsizesImageSrcInput + '{border:1px solid #D7D7D7; display:block; margin:4px 0px 6px; padding:4px; width:274px;}' +
+                '#' + allsizesImageSizeSelect + '{float:left;}' +
+                '#' + allsizesImageLinks + '{float:right; text-align:right; line-height:16px; padding-top:1px;}' +
+                '#' + allsizesDownloadLink + ',' + '#' + allsizesViewLink + '{display:block;}',
             
             // DOM elements
             shareBtn = jQuery(dom.shareBtn),
@@ -653,23 +657,32 @@
         
         // The new "Grab the Image" menu option
         imageOption
-            .attr('id', ns + '-share-menu-options-image')
+            .attr('id', allsizesImageOption)
             .find('textarea, .sharing_embed_cont, [id=code-types]')
                 .remove()
                 .end()
             .find('.share-menu-options-header')
                 .html('<span class="caret"></span> Grab the image')
                 .end()
+            .find('p:first')
+                .text('Copy and paste the image URL:')
+                .end()
             .find('[id]')
                 .attr('id', null)
                 .end()
-            .find('form')
-                .prepend('<input type="text" value="" id="' + allsizesImageSrcInput + '" onfocus="this.select();">')
-                .after('<a href="#download-link" id="' + allsizesDownloadLink + '">download</a><a href="#view-image" id="' + allsizesViewLink + '" target="_blank">view image</a>')
+            .find(dom.imageSizeSelect)
+                .before(
+                    '<input type="text" value="" id="' + allsizesImageSrcInput + '" />' +
+                    '<div id="' + allsizesImageLinks + '">' +
+                        '<a id="' + allsizesViewLink + '" target="_blank">view image</a>' +
+                        '<a id="' + allsizesDownloadLink + '">download</a>' +
+                    '</div>'
+                )
                 .end()
             .insertAfter(embedOption);
-            
+        
         imageSrcInput = jQuery('#' + allsizesImageSrcInput);
+        imageLinks = jQuery('#' + allsizesImageLinks);
         downloadLink = jQuery('#' + allsizesDownloadLink);
         viewLink = jQuery('#' + allsizesViewLink);
         
@@ -857,9 +870,9 @@
         
         function setSelectBehaviour(){
             shareMenu.find('textarea, input[type=text]')
-                .focus(function(){
+                .attr('onfocus', null) // the default behaviour doesn't work well in WebKit
+                .focus(function(){ // much better
                     var el = this;
-                    _(el);
                     window.setTimeout(function(){
                         el.select();
                     }, 50);
@@ -931,7 +944,7 @@
                 _('Share button clicked. Setting up menu...');
                 
                 // Add CSS to head
-                //addCss(css);
+                addCss(css);
                 
                 // Wait for UI to update
                 window.setTimeout(function(){
