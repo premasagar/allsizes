@@ -58,7 +58,8 @@
 "use strict";
 
 (function(){
-    var userscript = {
+    var // USERSCRIPT METADATA
+        userscript = {
             name: 'AllSizes',
 	        id: 'dharmafly-allsizes',
 	        version: '2.0.0',
@@ -66,13 +67,21 @@
 	        codebase: 'http://userscripts.org/scripts/source/6178.user.js',
             discuss: 'http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/'
         },
+        
+        // NAMESPACE
         ns = userscript.id,
+        
+        // CHECK UPDATES
         day = 24 * 60 * 60 * 1000,
         checkUpdatesEvery = day,
+        
+        // URLs
         url = {
-            // TEMP: using older version of jQuery, as latest (1.4.2) is not compatible with Greasemonkey. See http://forum.jquery.com/topic/importing-jquery-1-4-1-into-greasemonkey-scripts-generates-an-error
             jquery: 'http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.js'
+            // NOTE: Using jQuery 1.3.2, as latest (1.4.2) is not compatible with Greasemonkey. See http://forum.jquery.com/topic/importing-jquery-1-4-1-into-greasemonkey-scripts-generates-an-error
         },
+        
+        // WINDOW PROPERTIES
         window = this,
         confirm = window.confirm,
         JSON = window.JSON,
@@ -80,8 +89,18 @@
         GM_setValue = window.GM_setValue,
         GM_xmlhttpRequest = window.GM_xmlhttpRequest,
         jQuery = window.jQuery,
+        windowLocation = window.location,
+        
+        // DEBUG VARS
+        debugCommand = 'allsizesDebug',
+        debug = false,
+        locationSearch = windowLocation ? windowLocation.search : '',
+        debugCommandPos = locationSearch.indexOf(debugCommand),
+        debugCommandVal, consoleDebug,
         _ = function(){},
-        debug, consoleDebug, cache, jsonp, cacheCore, cacheToLocalStorage, cacheToGM, localStorage;
+        
+        // OTHER
+        cache, jsonp, cacheCore, cacheToLocalStorage, cacheToGM, localStorage;
         
         
     // DEPENDENCIES
@@ -146,13 +165,6 @@
 	        }
 	    }
     }());
-    
-    // Debugging: turn off logging if not in debug mode
-    if (window.location && window.location.search.indexOf('allsizesDebug') !== -1){
-        debug = true;
-        _ = consoleDebug;
-    }
-    
     // end DEPENDENCIES
         
 
@@ -548,6 +560,7 @@
         jQuery('head').append('<style>' + css + '</style>');
     }
     
+    /*
     function toBbcode(html){
         var bb = html;
     
@@ -559,6 +572,7 @@
         
         return bb;
     }
+    */
         
     function init(){
         _('initialising ' + userscript.name);
@@ -573,20 +587,20 @@
                 shareOptions: '#share-menu .share-menu-options',
                 shareHeaders: '#share-menu .share-menu-options-header',
                 
-                emailOption: '#share-menu-options-quick',
-                emailHeader: '#share-menu-options-quick .share-menu-options-header',
-                emailInner: '#share-menu-options-quick .share-menu-options-inner',
+                //emailOption: '#share-menu-options-quick',
+                //emailHeader: '#share-menu-options-quick .share-menu-options-header',
+                //emailInner: '#share-menu-options-quick .share-menu-options-inner',
                 
                 embedOption: '#share-menu-options-embed',
                 embedHeader: '#share-menu-options-embed .share-menu-options-header',
-                embedInner: '#share-menu-options-embed .share-menu-options-inner',
+                //embedInner: '#share-menu-options-embed .share-menu-options-inner',
                 embedContainer: '#share-menu-options-embed .sharing_embed_cont',
                 embedForm: '#sharing-get-html-form',
                 embedTextareas: '#share-menu-options-embed textarea.embed-markup',
                 imageSizeSelect: '.share-menu-options-inner select[name=sharing_size]',
-                inputCodeType: '.share-menu-options-inner input[name=code-type][type=radio]',
-                inputCodeTypeHtml: '.share-menu-options-inner input[name=code-type][type=radio][value=html]',
-                inputCodeTypeBBCode: '.share-menu-options-inner input[name=code-type][type=radio][value=BBCode]'
+                //inputCodeTypeHtml: '.share-menu-options-inner input[name=code-type][type=radio][value=html]',
+                //inputCodeTypeBBCode: '.share-menu-options-inner input[name=code-type][type=radio][value=BBCode]',
+                inputCodeType: '.share-menu-options-inner input[name=code-type][type=radio]'
             },
             
             shareOptionsOpen = 'share-menu-options-open',
@@ -595,10 +609,12 @@
             buttonDisabled = 'DisabledButt',
             
             // CSS styles
+            /*
             css = '' +
                 dom.embedInner + '{overflow:auto !important;}' +
                 dom.embedForm + '{float:left !important;}' +
                 '#' + allsizesToggleId + ' {font-size:11px; float:right; padding:3px;}',
+            */
             
             // DOM elements
             shareBtn = jQuery(dom.shareBtn),
@@ -606,20 +622,20 @@
             shareOptions = jQuery(dom.shareOptions),
             shareHeaders = jQuery(dom.shareHeaders),
             
-            emailOption = jQuery(dom.emailOption),
-            emailHeader = jQuery(dom.emailHeader),
-            emailInner = jQuery(dom.emailInner),
+            //emailOption = jQuery(dom.emailOption),
+            //emailHeader = jQuery(dom.emailHeader),
+            //emailInner = jQuery(dom.emailInner),
             
             embedOption = jQuery(dom.embedOption),
             imageOption = embedOption.clone(),
             embedHeader = jQuery(dom.embedHeader),
-            embedInner = jQuery(dom.embedInner),
+            //embedInner = jQuery(dom.embedInner),
             embedTextareas = jQuery(dom.embedTextareas),
             imageSizeSelect = jQuery(dom.imageSizeSelect, shareMenu)
                 .add(imageOption.find(dom.imageSizeSelect)),
             inputCodeType = jQuery(dom.inputCodeType),
-            inputCodeTypeHtml = jQuery(dom.inputCodeTypeHtml),
-            inputCodeTypeBBCode = jQuery(dom.inputCodeTypeBBCode),
+            //inputCodeTypeHtml = jQuery(dom.inputCodeTypeHtml),
+            //inputCodeTypeBBCode = jQuery(dom.inputCodeTypeBBCode),
             
             // Add toggle link
             // toggleCode = jQuery('<a id="' + allsizesToggleId + '" href="#allsizes-toggle">bbcode</a>'),
@@ -648,15 +664,34 @@
                 .after('<a href="#download-link" id="' + ns + 'download-link">download</a><a href="#view-image" id="' + ns + 'view-image">view image</a>')
                 .end()
             .insertAfter(embedOption);
-            
         
-        function initImageSrc(){   
-            var imageInput = jQuery('#' + ns + '-share-menu-options-image-input'),
-                imageSize = currentImageSize();
-                
-            if (imageSize){
-                imageInput.val(imageSrc(imageSize));
-            }
+        
+        // Lookup the abbreviation for an image size (the key corresponds to the image size selectbox options; the value corresponds to the textarea id suffixes
+        function imageSizeAbbr(imageSize){
+            return {
+                "Square": "sq",
+                "Thumbnail": "t",
+                "Small": "s",
+                "Medium": "m",
+                "Medium 640": "z",
+                "Large": "l",
+                "Original": "o"
+            }[imageSize];
+        }
+        
+        function currentImageSize(){
+            return imageSizeSelect.eq(0).find('option:selected').attr('value'); // NOTE: .attr('value') is used instead of .val() because jQuery 1.3.2 + FF 3.6.8 erroneously passes the text content and not the value attribute
+        }
+        
+        function largestImageSize(){
+            return imageSizeSelect.eq(0).find('option:last').attr('value'); // NOTE: .attr('value') is used instead of .val() because jQuery 1.3.2 + FF 3.6.8 erroneously passes the text content and not the value attribute
+        }
+        
+        function embedTextarea(imageSize){
+            var abbr = imageSizeAbbr(imageSize);
+            return abbr ?
+                embedTextareas.filter('[id$=-' + abbr + ']') :
+                null;
         }
     
         function imageSrc(imageSize){
@@ -664,6 +699,18 @@
                 val = ta ? ta.val() : '',
                 match = val.match(/<img [^>]*src=['"]([^'"]+)['"][^>]*>/);
             return match ? match[1] : '';
+        }
+        
+        function initImageSrc(){   
+            changeImageSrc(currentImageSize());
+        }
+        
+        function changeImageSrc(imageSize){
+            var imageInput = jQuery('#' + ns + '-share-menu-options-image-input');
+                
+            if (imageSize){
+                imageInput.val(imageSrc(imageSize));
+            }
         }
         
         // Change the menu position to the menu last opened - or to "Grab the HTML" menu
@@ -702,21 +749,13 @@
             });
         }
         
-        // Lookup the abbreviation for an image size (the key corresponds to the image size selectbox options; the value corresponds to the textarea id suffixes
-        function imageSizeAbbr(imageSize){
-            return {
-                "Square": "sq",
-                "Thumbnail": "t",
-                "Small": "s",
-                "Medium": "m",
-                "Medium 640": "z",
-                "Large": "l",
-                "Original": "o"
-            }[imageSize];
-        }
-        
-        function currentImageSize(){
-            return imageSizeSelect.eq(0).find('option:last').attr('value'); // NOTE: .attr('value') is used instead of .val() because jQuery 1.3.2 + FF 3.6.8 erroneously passes the text content and not the value attribute
+        function changeEmbedTextarea(imageSize){
+            var ta = embedTextarea(imageSize);
+            if (ta){
+                _('Changing displayed embed code textarea to: ' + imageSize);
+                embedTextareas.hide();
+                ta.show();
+            }
         }
         
         // Change the image size selectbox to the last used size
@@ -728,27 +767,12 @@
                 // If the requested value does not exist, use the largest option available
                 if (!imageSizeSelect.find('option[value=' + imageSize + ']').length){
                     _('Cached image size not available. Using the largest available.');
-                    imageSize = currentImageSize();
+                    imageSize = largestImageSize();
                 }
                 _('Changing image size selectbox to: ' + imageSize);
                 imageSizeSelect.val(imageSize);
                 changeEmbedTextarea(imageSize);
-            }
-        }
-        
-        function embedTextarea(imageSize){
-            var abbr = imageSizeAbbr(imageSize);
-            return abbr ?
-                embedTextareas.filter('[id$=-' + abbr + ']') :
-                null;
-        }
-        
-        function changeEmbedTextarea(imageSize){
-            var ta = embedTextarea(imageSize);
-            if (ta){
-                _('Changing displayed embed code textarea to: ' + imageSize);
-                embedTextareas.hide();
-                ta.show();
+                changeImageSrc(imageSize);
             }
         }
         
@@ -762,6 +786,32 @@
                 imageSizeSelect.val(newValue);
                 changeEmbedTextarea(newValue);
             });
+        }
+        
+        function changeCodeType(newCodeType){
+            _('changeCodeType', newCodeType, codeType);
+            
+            var defaultHtml = embedHeader.data('defaultHtml');
+            
+            codeType = newCodeType;
+            
+            // Cache the codeType for next page load
+            cache('codeType', codeType);
+                
+            if (!defaultHtml){
+                defaultHtml = embedHeader.html();
+                embedHeader.data('defaultHtml', defaultHtml);
+            }
+            
+            switch (codeType){
+                case 'html':
+                embedHeader.html(defaultHtml);
+                break;
+            
+                case 'BBCode':
+                embedHeader.html('<span class="caret"></span> Grab the BBCode');
+                break;
+            }
         }
         
         function initCodeTypeChanger(){
@@ -788,33 +838,6 @@
                 var codeType = inputCodeType.filter(':checked').val();
                 changeCodeType(codeType);
             });
-        }
-        
-        function changeCodeType(newCodeType){
-            _('changeCodeType', newCodeType, codeType);
-            
-            var defaultHtml = embedHeader.data('defaultHtml'),
-                bbcode;
-            
-            codeType = newCodeType;
-            
-            // Cache the codeType for next page load
-            cache('codeType', codeType);
-                
-            if (!defaultHtml){
-                defaultHtml = embedHeader.html();
-                embedHeader.data('defaultHtml', defaultHtml);
-            }
-            
-            switch (codeType){
-                case 'html':
-                embedHeader.html(defaultHtml);
-                break;
-            
-                case 'BBCode':
-                embedHeader.html('<span class="caret"></span> Grab the BBCode');
-                break;
-            }
         }
         
         function setSelectBehaviour(){
@@ -893,7 +916,7 @@
                 _('Share button clicked. Setting up menu...');
                 
                 // Add CSS to head
-                addCss(css);
+                //addCss(css);
                 
                 // Wait for UI to update
                 window.setTimeout(function(){
@@ -918,15 +941,30 @@
     
     // end CORE FUNCTIONS
     
-    // INITIALISE
-    /* Sticky debug mode: uncomment the next line once */
-    // cache('debug', true);
     
-    if (cache('debug')){
-        debug = true;
-        _ = consoleDebug;
-        _('/*! ' + userscript.name + '\n*   v' + userscript.version + ' (userscript)\n*/');
+    // INITIALISE
+    // Debugging: turn off logging if not in debug mode
+    if (debugCommandPos !== -1){
+        debugCommandVal = locationSearch.slice(debugCommandPos + debugCommand.length, debugCommandPos + debugCommand.length + 2);
+        
+        if (debugCommandVal === '=0'){
+            debug = false;
+        }
+        else {
+            debug = true;
+        }
+        if (debugCommandVal.slice(0,1) === '='){
+            cache('debug', debug);
+        }
     }
+    else {
+        debug = !!cache('debug');
+    }
+    if (debug){
+        _ = consoleDebug;
+    }
+    
+    _('/*! ' + userscript.name + '\n*   v' + userscript.version + ' (userscript)\n*   ' + userscript.discuss + '\n*/');
     
     if (jQuery){
         _('jQuery already loaded');
