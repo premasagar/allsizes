@@ -605,6 +605,9 @@
             
             shareOptionsOpen = 'share-menu-options-open',
             allsizesToggleId = ns + '-toggle',
+            allsizesImageSrcInput = ns + '-share-menu-options-image-input',
+            allsizesDownloadLink = ns + 'download-link',
+            allsizesViewLink = ns + 'view-link',
             buttonNormal = 'Butt',
             buttonDisabled = 'DisabledButt',
             
@@ -643,7 +646,8 @@
             codeType = cache('codeType'),
             menuOption = cache('menuOption'),
             defaultMenuOption,
-            imageSize = cache('imageSize');
+            imageSize = cache('imageSize'),
+            imageSrcInput;
         
         // DOM manipulation
         
@@ -660,10 +664,14 @@
                 .attr('id', null)
                 .end()
             .find('form')
-                .prepend('<input type="text" value="" id="' + ns + '-share-menu-options-image-input" onfocus="this.select();">')
-                .after('<a href="#download-link" id="' + ns + 'download-link">download</a><a href="#view-image" id="' + ns + 'view-image">view image</a>')
+                .prepend('<input type="text" value="" id="' + allsizesImageSrcInput + '" onfocus="this.select();">')
+                .after('<a href="#download-link" id="' + allsizesDownloadLink + '">download</a><a href="#view-image" id="' + allsizesViewLink + '" target="_blank">view image</a>')
                 .end()
             .insertAfter(embedOption);
+            
+        imageSrcInput = jQuery('#' + allsizesImageSrcInput);
+        downloadLink = jQuery('#' + allsizesDownloadLink);
+        viewLink = jQuery('#' + allsizesViewLink);
         
         
         // Lookup the abbreviation for an image size (the key corresponds to the image size selectbox options; the value corresponds to the textarea id suffixes
@@ -700,16 +708,23 @@
                 match = val.match(/<img [^>]*src=['"]([^'"]+)['"][^>]*>/);
             return match ? match[1] : '';
         }
+    
+        function imageDownloadSrc(imageSrc){
+            return imageSrc.replace(/(\.\w+)$/, '_d$1');
+        }
         
         function initImageSrc(){   
             changeImageSrc(currentImageSize());
         }
         
         function changeImageSrc(imageSize){
-            var imageInput = jQuery('#' + ns + '-share-menu-options-image-input');
-                
+            var src;
+            
             if (imageSize){
-                imageInput.val(imageSrc(imageSize));
+                src = imageSrc(imageSize);
+                imageSrcInput.val(src);
+                viewLink.attr('href', src);
+                downloadLink.attr('href', imageDownloadSrc(src));
             }
         }
         
@@ -772,7 +787,6 @@
                 _('Changing image size selectbox to: ' + imageSize);
                 imageSizeSelect.val(imageSize);
                 changeEmbedTextarea(imageSize);
-                changeImageSrc(imageSize);
             }
         }
         
@@ -780,11 +794,12 @@
         function initImageSelectorCaching(){
             _('Setting up image size caching');
             imageSizeSelect.change(function(){
-                var newValue = jQuery(this).attr('value'); // NOTE: .attr('value') is used instead of .val() because jQuery 1.3.2 + FF 3.6.8 erroneously passes the text content and not the value attribute
-                cache('imageSize', newValue);
+                var imageSize = jQuery(this).attr('value'); // NOTE: .attr('value') is used instead of .val() because jQuery 1.3.2 + FF 3.6.8 erroneously passes the text content and not the value attribute
+                cache('imageSize', imageSize);
                 // set all selectors to this size
-                imageSizeSelect.val(newValue);
-                changeEmbedTextarea(newValue);
+                imageSizeSelect.val(imageSize);
+                changeEmbedTextarea(imageSize);
+                changeImageSrc(imageSize);
             });
         }
         
@@ -981,8 +996,17 @@
                 _('jQuery loaded');
                 
                 if (debug){
-                    jQuery('body').append('<script src="' + url.jquery + '"></script>');
+                    try {
+                        unsafeWindow.jQuery = jQuery;
+                    }
+                    catch(e){
+                        try {
+                            jQuery('body').append('<script src="' + url.jquery + '"></script>');
+                        }
+                        catch(e){}
+                    }
                 }
+                
                 init();
             }
             else {
