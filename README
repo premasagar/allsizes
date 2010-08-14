@@ -1,0 +1,39 @@
+/*!
+* Flickr AllSizes
+*
+*   AllSizes is a (Greasemonkey) userscript to give better access to Flickr photos:
+*   HTML and BBCode for the different image sizes, URLs, downloads and more.
+*
+*   discuss:
+*       flickr.com/groups/flickrhacks/discuss/72157594303798688/
+*
+*   latest version:
+*       userscripts.org/scripts/source/6178.user.js
+*
+*   userscript hosting:
+*       userscripts.org/scripts/show/6178
+*
+¡*/
+
+SO WHAT DOES IT DO?
+AllSizes adds its functionality to the Flickr photo page's "Share this" menu:
+
+    The "Grab the HTML" menu option is now selected by default, instead of "Share this photo".
+
+    A "Grab the image" menu option is added, giving access to the image URL, as well as links to view and download the image at the different available sizes.
+
+    BBCode is added to the embed code options. Yay! Flickr now does this by default.
+
+    All the different ways that you use the "Share this" menu are remembered. For example, if you tend to use the "Blog it" option a lot, then that is the option that will open next time you open the menu. Or if you're a BBCode user, then you won't have to click "BBCode" next time - it'll be already be selected for you. Or if you like "Large" images instead of Medium images, then you'll already have Large images selected next time around. All this is remembered, saving you from making repeated clicks to get the job done.
+
+    The "Share this" button is always available. For example, if a Creative Commons photo page doesn't display the HTML code you need to share it, or if you want to post a photo into a Flickr group discussion that doesn't already display the code, well, now you can.
+
+    It now works cross-browser, so as well as Firefox & Greasemonkey, it'll work natively in Google Chrome and Opera. It should also work in Safari + GreaseKit, and perhaps even in Internet Explorer + GreasemonkeyForIE, but I haven't yet tested those (if you do, please let me know).
+
+    As ever, the script checks for new updates, and lets you know when they are ready to be installed.
+
+--
+
+HOW DO YOU FIND IT?
+Any comments, feedback or bug reports? Please share your thoughts in the Flickr Hacks discussion thread:
+    http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/page4/

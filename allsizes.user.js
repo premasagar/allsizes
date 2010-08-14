@@ -20,7 +20,7 @@
 *
 *   latest version:
 *       userscripts.org/scripts/source/6178.user.js
-*       dharmafly.com/projects/allsizes/allsizes.user.js (mirror)
+*       assets.dharmafly.com/allsizes/allsizes.user.js (mirror)
 *
 *   userscript hosting:
 *       userscripts.org/scripts/show/6178
