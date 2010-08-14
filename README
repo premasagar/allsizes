@@ -16,15 +16,17 @@
 ¡*/
 
 SO WHAT DOES IT DO?
-AllSizes adds its functionality to the Flickr photo page's "Share this" menu:
+The script has been re-written from scratch to work with Flickr's new photo page design. It works cross-browser, gives you less clutter and integrates better into the Flickr interface.
+
+AllSizes adds its functionality to the photo page's new "Share this" menu:
 
     The "Grab the HTML" menu option is now selected by default, instead of "Share this photo".
 
-    A "Grab the image" menu option is added, giving access to the image URL, as well as links to view and download the image at the different available sizes.
+    A "Grab the image" menu option is added, giving access to the image URL, as well as links to view and download the different available sizes.
 
-    BBCode is added to the embed code options. Yay! Flickr now does this by default.
+    --(BBCode is added to the embed code options.)-- Yay! Flickr now does this by default.
 
-    All the different ways that you use the "Share this" menu are remembered. For example, if you tend to use the "Blog it" option a lot, then that is the option that will open next time you open the menu. Or if you're a BBCode user, then you won't have to click "BBCode" next time - it'll be already be selected for you. Or if you like "Large" images instead of Medium images, then you'll already have Large images selected next time around. All this is remembered, saving you from making repeated clicks to get the job done.
+    All the different ways that you use the "Share this" menu are remembered. For example, if you tend to use the "Blog it" option a lot, then that is the option that will open next time you open the menu. Or if you're a BBCode user, then you won't have to click "BBCode" next time - it'll be already be selected for you. Or if you like "Large" images instead of "Medium" images, then Large images will be selected next time around. All this is remembered, saving you from making repeated clicks to get the job done.
 
     The "Share this" button is always available. For example, if a Creative Commons photo page doesn't display the HTML code you need to share it, or if you want to post a photo into a Flickr group discussion that doesn't already display the code, well, now you can.
 
