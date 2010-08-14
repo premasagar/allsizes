@@ -2,7 +2,7 @@
     "userscript": {
         "name":         "AllSizes",
         "id":           "dharmafly-allsizes",
-        "version":      "2.0.0",
+        "version":      "2.0.1",
         "author":       "Premasagar Rose",
         "homepage":     "http://premasagar.com",
         "url":          "http://dharmafly.com/projects/allsizes/",
@@ -12,10 +12,18 @@
         "repository":   "http://github.com/premasagar/allsizes/",
         "changelog": [
             {
+                "version": "2.0.1",
+                "timestamp": "20100814",
+                "description": [
+                    "'Grab the image' menu option no longer shown on video pages."
+                ],
+                "announce": "http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/page4/"
+            },
+            {
                 "version": "2.0.0",
                 "timestamp": "20100803",
                 "description": [
-                    "AllSizes v2 released for new Flickr website interface"
+                    "AllSizes v2 released for new Flickr website interface."
                 ],
                 "announce": "http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/page4/"
             }

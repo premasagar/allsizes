@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            Flickr AllSizes, by Dharmafly
 // @description     AllSizes is a (Greasemonkey) userscript to give better access to Flickr photos: HTML and BBCode for the different image sizes, URLs, downloads and more.
-// @version         2.0.0
+// @version         2.0.1
 
 // @namespace       http://dharmafly.com
 // @df:project      http://dharmafly.com/projects/allsizes/
@@ -62,7 +62,7 @@
         userscript = {
             name: 'AllSizes',
 	        id: 'dharmafly-allsizes',
-	        version: '2.0.0',
+	        version: '2.0.1',
 	        manifest: 'http://assets.dharmafly.com/allsizes/manifest.json',
 	        codebase: 'http://userscripts.org/scripts/source/6178.user.js',
             discuss: 'http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/'
@@ -634,58 +634,56 @@
             //emailInner = jQuery(dom.emailInner),
             
             embedOption = jQuery(dom.embedOption),
-            imageOption = embedOption.clone(),
             embedHeader = jQuery(dom.embedHeader),
             //embedInner = jQuery(dom.embedInner),
             embedTextareas = jQuery(dom.embedTextareas),
-            imageSizeSelect = jQuery(dom.imageSizeSelect, shareMenu)
-                .add(imageOption.find(dom.imageSizeSelect)),
+            imageSizeSelect = jQuery(dom.imageSizeSelect, shareMenu),
             inputCodeType = jQuery(dom.inputCodeType),
-            //inputCodeTypeHtml = jQuery(dom.inputCodeTypeHtml),
-            //inputCodeTypeBBCode = jQuery(dom.inputCodeTypeBBCode),
-            
-            // Add toggle link
-            // toggleCode = jQuery('<a id="' + allsizesToggleId + '" href="#allsizes-toggle">bbcode</a>'),
             
             codeType = cache('codeType'),
             menuOption = cache('menuOption'),
             defaultMenuOption,
             imageSize = cache('imageSize'),
-            imageSrcInput;
+            imageOption, imageSrcInput, imageLinks, downloadLink, viewLink;
         
         // DOM manipulation
         
-        // The new "Grab the Image" menu option
-        imageOption
-            .attr('id', allsizesImageOption)
-            .find('textarea, .sharing_embed_cont, [id=code-types]')
-                .remove()
-                .end()
-            .find('.share-menu-options-header')
-                .html('<span class="caret"></span> Grab the image')
-                .end()
-            .find('p:first')
-                .text('Copy and paste the image URL:')
-                .end()
-            .find('[id]')
-                .attr('id', null)
-                .end()
-            .find(dom.imageSizeSelect)
-                .before(
-                    '<input type="text" value="" id="' + allsizesImageSrcInput + '" />' +
-                    '<div id="' + allsizesImageLinks + '">' +
-                        '<a id="' + allsizesViewLink + '" target="_blank">view image</a>' +
-                        '<a id="' + allsizesDownloadLink + '">download</a>' +
-                    '</div>'
-                )
-                .end()
-            .insertAfter(embedOption);
+        function addImageMenuOption(){
+            imageOption = embedOption.clone();
         
-        imageSrcInput = jQuery('#' + allsizesImageSrcInput);
-        imageLinks = jQuery('#' + allsizesImageLinks);
-        downloadLink = jQuery('#' + allsizesDownloadLink);
-        viewLink = jQuery('#' + allsizesViewLink);
-        
+            // The new "Grab the Image" menu option
+            imageOption
+                .attr('id', allsizesImageOption)
+                .find('textarea, .sharing_embed_cont, [id=code-types]')
+                    .remove()
+                    .end()
+                .find('.share-menu-options-header')
+                    .html('<span class="caret"></span> Grab the image')
+                    .end()
+                .find('p:first')
+                    .text('Copy and paste the image URL:')
+                    .end()
+                .find('[id]')
+                    .attr('id', null)
+                    .end()
+                .find(dom.imageSizeSelect)
+                    .before(
+                        '<input type="text" value="" id="' + allsizesImageSrcInput + '" />' +
+                        '<div id="' + allsizesImageLinks + '">' +
+                            '<a id="' + allsizesViewLink + '" target="_blank">view image</a>' +
+                            '<a id="' + allsizesDownloadLink + '">download</a>' +
+                        '</div>'
+                    )
+                    .end()
+                .insertAfter(embedOption);
+            
+            imageSrcInput = jQuery('#' + allsizesImageSrcInput);
+            imageLinks = jQuery('#' + allsizesImageLinks);
+            downloadLink = jQuery('#' + allsizesDownloadLink);
+            viewLink = jQuery('#' + allsizesViewLink);
+            
+            imageSizeSelect = imageSizeSelect.add(imageOption.find(dom.imageSizeSelect));
+        }
         
         // Lookup the abbreviation for an image size (the key corresponds to the image size selectbox options; the value corresponds to the textarea id suffixes
         function imageSizeAbbr(imageSize){
@@ -726,10 +724,6 @@
             return imageSrc.replace(/(\.\w+)$/, '_d$1');
         }
         
-        function initImageSrc(){   
-            changeImageSrc(currentImageSize());
-        }
-        
         function changeImageSrc(imageSize){
             var src;
             
@@ -741,6 +735,10 @@
             }
         }
         
+        function initImageSrc(){   
+            changeImageSrc(currentImageSize());
+        }
+        
         // Change the menu position to the menu last opened - or to "Grab the HTML" menu
         function menuPosition(menuOption){
             _('menuPosition: setting to ', menuOption || dom.embedOption);
@@ -748,6 +746,7 @@
                 defaultMenuOption = jQuery('#' + menuOption);
             }
             if (!defaultMenuOption || !defaultMenuOption.length){
+                _('menuPosition: that option not found. Setting to the embed code option.');
                 defaultMenuOption = embedOption; // 'Grab the HTML' menu option is the default
             }
             if (defaultMenuOption && defaultMenuOption.length){
@@ -816,21 +815,14 @@
             });
         }
         
-        function changeCodeType(newCodeType){
-            _('changeCodeType', newCodeType, codeType);
-            
+        function updateCodeTypeHeader(){
             var defaultHtml = embedHeader.data('defaultHtml');
             
-            codeType = newCodeType;
-            
-            // Cache the codeType for next page load
-            cache('codeType', codeType);
-                
             if (!defaultHtml){
                 defaultHtml = embedHeader.html();
                 embedHeader.data('defaultHtml', defaultHtml);
             }
-            
+        
             switch (codeType){
                 case 'html':
                 embedHeader.html(defaultHtml);
@@ -842,26 +834,28 @@
             }
         }
         
+        function updateCodeTypeRadio(){
+            inputCodeType.each(function(){
+                var self = jQuery(this),
+                    attr = (self.val() === codeType ? 'checked' : '');
+                self.attr('checked', attr);
+            });
+        }
+        
+        function changeCodeType(newCodeType){
+            _('changeCodeType', newCodeType, codeType);
+            codeType = newCodeType;
+            
+            // Cache the codeType for next page load
+            cache('codeType', codeType);
+            updateCodeTypeHeader();
+        }
+        
         function initCodeTypeChanger(){
             _('Cached codeType: ', codeType);
-            
-            // Check if mode was previously cached
-            if (codeType){
-                if (codeType !== 'html'){
-                    changeCodeType(codeType);
-                }
-            
-                // Change the radio
-                inputCodeType.each(function(){
-                    var self = jQuery(this),
-                        attr = (self.val() === codeType ? 'checked' : '');
-                    self.attr('checked', attr);
-                });
-            }
-            else {
+            if (!codeType){
                 codeType = 'html';
             }
-            
             inputCodeType.click(function(){
                 var codeType = inputCodeType.filter(':checked').val();
                 changeCodeType(codeType);
@@ -879,62 +873,10 @@
                 });
         }
         
-        /*
-        function initToggleCodeBehaviour(){
-            _('Setting up toggle-code behaviour');
-            _('Cached code mode: ', mode);
-            toggleCode.click(function(){
-                var mode = toggleCode.text(),
-                    header = embedHeader.data('content'),
-                    bbcode;
-                    
-                if (!header){
-                    header = embedHeader.html();
-                    embedHeader.data('content', header);
-                }
-                
-                embedTextareas.each(function(i, textarea){
-                    var t = jQuery(textarea),
-                        html = t.data('html');
-                
-                    if (!html){
-                        html = t.val();
-                        t.data('html', html); // cache html
-                    }
-                    
-                    switch(mode){
-                        case 'html':
-                        t.val(html);
-                        embedHeader.html(header);
-                        toggleCode.text('bbcode');
-                        break;
-                        
-                        case 'bbcode':
-                        bbcode = t.data('bbcode');
-                        if (!bbcode){
-                            bbcode = toBbcode(html);
-                            t.data('bbcode', bbcode);
-                        }
-                        t.val(bbcode);
-                        embedHeader.html(header.replace(/>[^>]*$/, '> Grab the BBCode'));
-                        toggleCode.text('html');
-                        break;
-                    }
-                });
-                // Cache the mode for next page load
-                cache('mode', mode);
-                return false;
-            });
-            
-            // Check if mode was previously cached
-            if (mode && mode !== 'html'){
-                toggleCode
-                    .text(mode)
-                    .click();
-            }
+        function isVideo(){
+            // One simple check. TODO: make this more robust
+            return !jQuery.trim(embedTextarea('Thumbnail').html());
         }
-        */
-        
         
         // When the "Share" button is clicked, open the menu at the last viewed menu option
         shareBtn
@@ -946,24 +888,28 @@
                 // Add CSS to head
                 addCss(css);
                 
+                if (!isVideo()){
+                    addImageMenuOption();
+                }
+                
+                if (codeType){
+                    updateCodeTypeHeader();
+                }
+                
+                
                 // Wait for UI to update
-                window.setTimeout(function(){
+                window.setTimeout(function(){                
+                    if (codeType){
+                        updateCodeTypeRadio();
+                    }
+                    initCodeTypeChanger();
                     menuPosition(menuOption);
                     initMenuPositionCaching();
                     imageSelector(imageSize);
                     initImageSelectorCaching();
-                    initCodeTypeChanger();
                     initImageSrc();
                     setSelectBehaviour();
                 }, 50);
-                
-                // Append the toggle code, for user to change from HTML to BBCode, etc
-                
-                // TEMP:
-                /*
-                embedInner.append(toggleCode);
-                initToggleCodeBehaviour();
-                */
             });
     }
     
@@ -1010,13 +956,13 @@
                 
                 if (debug){
                     try {
-                        unsafeWindow.jQuery = jQuery;
+                        window.unsafeWindow.jQuery = jQuery;
                     }
-                    catch(e){
+                    catch(e1){
                         try {
                             jQuery('body').append('<script src="' + url.jquery + '"></script>');
                         }
-                        catch(e){}
+                        catch(e2){}
                     }
                 }
                 
