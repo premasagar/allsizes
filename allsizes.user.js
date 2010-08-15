@@ -34,6 +34,7 @@
 // Activate on a Flickr photo page
 // @include         http://www.flickr.com/photos/*/*
 //
+// @exclude         http://www.flickr.com/photos/*/
 // @exclude         http://www.flickr.com/photos/organize/*
 // @exclude         http://www.flickr.com/photos/friends/*
 // @exclude         http://www.flickr.com/photos/tags/*
