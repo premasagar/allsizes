@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            Flickr AllSizes, by Dharmafly
 // @description     AllSizes is a (Greasemonkey) userscript to give better access to Flickr photos: HTML and BBCode for the different image sizes, URLs, downloads and more.
-// @version         2.0.1
+// @version         2.0.2
 
 // @namespace       http://dharmafly.com
 // @df:project      http://dharmafly.com/projects/allsizes/
@@ -32,9 +32,9 @@
 
 
 // Activate on a Flickr photo page
+// @match           http://www.flickr.com/photos/*/*
 // @include         http://www.flickr.com/photos/*/*
 //
-// @exclude         http://www.flickr.com/photos/*/
 // @exclude         http://www.flickr.com/photos/organize/*
 // @exclude         http://www.flickr.com/photos/friends/*
 // @exclude         http://www.flickr.com/photos/tags/*
@@ -51,19 +51,32 @@
 // @exclude         http://www.flickr.com/photos/*/with*
 // @exclude         http://www.flickr.com/photos/*/stats*
 //
-// @exclude         http://www.flickr.com/photos/*/*/sizes/*
+// @exclude         http://www.flickr.com/photos/*/*/sizes*
 // @exclude         http://www.flickr.com/photos/*/*/stats*
+
+// NOTE: with userscripts' simple @include/@exclude patterns, it is not possible to simultaneously support Flickr photo pages that omit a trailing slash, and also prevent the script executing on a Flickr photostream page.
+
 // ==/UserScript==
 
 
 "use strict";
 
 (function(){
+    var window = this || {},
+        windowLocation = window.location;
+    
+    // If the script executes on a photostream page, then return
+    if (windowLocation && windowLocation.href && windowLocation.href.match(/^http:\/\/www\.flickr\.com\/photos\/[^\/]*\/?$/)){
+        return;
+    }
+    
+    /////
+
     var // USERSCRIPT METADATA
         userscript = {
             name: 'AllSizes',
 	        id: 'dharmafly-allsizes',
-	        version: '2.0.1',
+	        version: '2.0.2',
 	        manifest: 'http://assets.dharmafly.com/allsizes/manifest.json',
 	        codebase: 'http://userscripts.org/scripts/source/6178.user.js',
             discuss: 'http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/'
@@ -82,7 +95,7 @@
             // NOTE: Using jQuery 1.3.2, as latest (1.4.2) is not compatible with Greasemonkey. See http://forum.jquery.com/topic/importing-jquery-1-4-1-into-greasemonkey-scripts-generates-an-error
         },
         
-        // WINDOW PROPERTIES
+        // MORE WINDOW PROPERTIES
         window = this,
         confirm = window.confirm,
         JSON = window.JSON,
@@ -90,7 +103,6 @@
         GM_setValue = window.GM_setValue,
         GM_xmlhttpRequest = window.GM_xmlhttpRequest,
         jQuery = window.jQuery,
-        windowLocation = window.location,
         
         // DEBUG VARS
         debugCommand = 'allsizesDebug',
@@ -587,6 +599,7 @@
                 shareMenu: '#share-menu',
                 shareOptions: '#share-menu .share-menu-options',
                 shareHeaders: '#share-menu .share-menu-options-header',
+                shareHeader: '.share-menu-options-header',
                 
                 //emailOption: '#share-menu-options-quick',
                 //emailHeader: '#share-menu-options-quick .share-menu-options-header',
@@ -621,7 +634,7 @@
             css = '#' + allsizesImageOption + ' form {width:282px; margin:0;}' +
                 '#' + allsizesImageSrcInput + '{border:1px solid #D7D7D7; display:block; margin:4px 0px 6px; padding:4px; width:274px;}' +
                 '#' + allsizesImageSizeSelect + '{float:left;}' +
-                '#' + allsizesImageLinks + '{float:right; text-align:right; line-height:16px; padding-top:1px;}' +
+                '#' + allsizesImageLinks + '{float:right; text-align:right; line-height:15px; padding-top:1px;}' +
                 '#' + allsizesDownloadLink + ',' + '#' + allsizesViewLink + '{display:block;}',
             
             // DOM elements
@@ -650,6 +663,7 @@
         // DOM manipulation
         
         function addImageMenuOption(){
+            _('addImageMenuOption: Adding "Grab the image" menu option');        
             imageOption = embedOption.clone();
         
             // The new "Grab the Image" menu option
@@ -683,6 +697,10 @@
             downloadLink = jQuery('#' + allsizesDownloadLink);
             viewLink = jQuery('#' + allsizesViewLink);
             
+            
+            // Add imageOptions elements to shortcut vars
+            shareOptions = shareOptions.add(imageOption);
+            shareHeaders = shareHeaders.add(imageOption.find(dom.shareHeader));
             imageSizeSelect = imageSizeSelect.add(imageOption.find(dom.imageSizeSelect));
         }
         
@@ -761,8 +779,6 @@
         // Cache the menu position, when the position is changed
         function initMenuPositionCaching(){
             _('Setting up menu position caching');
-            // Reapply dom selector, to include imageOption header
-            shareHeaders = jQuery(dom.shareHeaders);
             shareHeaders.click(function(){
                 var menu = jQuery(this).parents('.share-menu-options');
                 // set timeout to allow time for combo box to change the classnames
@@ -896,6 +912,7 @@
                 if (codeType){
                     updateCodeTypeHeader();
                 }
+                menuPosition(menuOption);
                 
                 
                 // Wait for UI to update
@@ -904,7 +921,6 @@
                         updateCodeTypeRadio();
                     }
                     initCodeTypeChanger();
-                    menuPosition(menuOption);
                     initMenuPositionCaching();
                     imageSelector(imageSize);
                     initImageSelectorCaching();
