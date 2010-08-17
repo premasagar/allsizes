@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            Flickr AllSizes, by Dharmafly
 // @description     AllSizes is a (Greasemonkey) userscript to give better access to Flickr photos: HTML and BBCode for the different image sizes, URLs, downloads and more.
-// @version         2.0.3
+// @version         2.0.2
 
 // @namespace       http://dharmafly.com
 // @df:project      http://dharmafly.com/projects/allsizes/
@@ -76,7 +76,7 @@
         userscript = {
             name: 'AllSizes',
 	        id: 'dharmafly-allsizes',
-	        version: '2.0.3',
+	        version: '2.0.2',
 	        manifest: 'http://assets.dharmafly.com/allsizes/manifest.json',
 	        codebase: 'http://userscripts.org/scripts/source/6178.user.js',
             discuss: 'http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/'
@@ -722,7 +722,6 @@
         
         function changeImageSrc(imageSize){
             var src;
-            _('changeImageSrc: Changing the image size to ', imageSize);
             
             if (imageSize){
                 src = imageSrc(imageSize);
@@ -732,8 +731,7 @@
             }
         }
         
-        function initImageSrc(){
-            _('initImageSrc: ', currentImageSize());
+        function initImageSrc(){   
             changeImageSrc(currentImageSize());
         }
         
@@ -779,9 +777,7 @@
             if (ta){
                 _('changeEmbedTextarea: Changing displayed embed code textarea to: ' + imageSize + ', ' + codeType);
                 embedTextareas.hide();
-                ta.show();
-                ta[0].focus(); // NOTE: more convoluted, to satisfy Greasemonkey's restrictions on accessing element attributes
-                ta[0].select();
+                ta.show().focus().select();
             }
         }
         
@@ -789,14 +785,14 @@
         function imageSelector(imageSize){
             var defaultImageSize = 'Medium';
         
-            _('imageSelector: Cached image size is ', imageSize);
+            _('Cached image size: ', imageSize);
             if (imageSize && imageSize !== defaultImageSize){
                 // If the requested value does not exist, use the largest option available
                 if (!imageSizeSelect.find('option[value=' + imageSize + ']').length){
-                    _('imageSelector: Cached image size not available. Using the largest available.');
+                    _('Cached image size not available. Using the largest available.');
                     imageSize = largestImageSize();
                 }
-                _('imageSelector: Changing image size selectbox to ' + imageSize);
+                _('Changing image size selectbox to: ' + imageSize);
                 imageSizeSelect.val(imageSize);
                 changeEmbedTextarea(imageSize, codeType);
             }
@@ -868,14 +864,10 @@
             });
         }
         
-         // Change the default behaviour around elements selecting on focus, which doesn't work well in WebKit
-        function selectOnFocus(){
-            var elems = shareMenu.find('textarea, input[type=text]');
-            elems.each(function(){ // NOTE: we can't use elems.attr('onfocus', '') due to Greasemonkey restrictions
-                this.setAttribute('onfocus', '');
-            });
-                //.attr('onfocus', 'this.select();')
-            elems.focus(function(){ // much better
+        function setSelectBehaviour(){
+            shareMenu.find('textarea, input[type=text]')
+                .attr('onfocus', null) // the default behaviour doesn't work well in WebKit
+                .focus(function(){ // much better
                     var el = this;
                     window.setTimeout(function(){
                         el.select();
@@ -909,7 +901,7 @@
                 
                 
                 // Wait for UI to update
-                window.setTimeout(function(){
+                window.setTimeout(function(){                
                     if (codeType){
                         updateCodeTypeRadio();
                     }
@@ -918,12 +910,13 @@
                     imageSelector(imageSize);
                     initImageSelectorCaching();
                     initImageSrc();
-                    selectOnFocus();
+                    setSelectBehaviour();
                 }, 50);
             });
     }
     
     // end CORE FUNCTIONS
+    
     
     // INITIALISE
     // Debugging: turn off logging if not in debug mode

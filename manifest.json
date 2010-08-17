@@ -2,7 +2,7 @@
     "userscript": {
         "name":         "AllSizes",
         "id":           "dharmafly-allsizes",
-        "version":      "2.0.1",
+        "version":      "2.0.3",
         "author":       "Premasagar Rose",
         "homepage":     "http://premasagar.com",
         "url":          "http://dharmafly.com/projects/allsizes/",
@@ -12,6 +12,23 @@
         "discuss":      "http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/",
         "repository":   "http://github.com/premasagar/allsizes/",
         "changelog": [
+            {
+                "version": "2.0.3",
+                "timestamp": "20100817",
+                "description": [
+                    "Bug fix for Firefox + Greasemonkey: image src field not behaving correctly."
+                ],
+                "announce": "http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/page4/"
+            },
+            {
+                "version": "2.0.2",
+                "timestamp": "20100816",
+                "description": [
+                    "Added textarea auto-selecting on opening the share menu and changing the image size.",
+                    "Bug fixes relating to restoring BBCode state, and other minor fixes."
+                ],
+                "announce": "http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/page4/"
+            },
             {
                 "version": "2.0.1",
                 "timestamp": "20100814",
