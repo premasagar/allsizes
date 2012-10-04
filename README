@@ -15,6 +15,17 @@
 *
 ¡*/
 
+
+=====
+
+*** Oct 2012: THIS SCRIPT IS NO LONGER BEING MAINTAINED ***
+See this comment in the Flickr discussion thread:
+http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/72157631691093896/
+
+
+=====
+
+
 SO WHAT DOES IT DO?
 The script has been re-written from scratch to work with Flickr's new photo page design. It works cross-browser, gives you less clutter and integrates better into the Flickr interface.
 
@@ -38,4 +49,4 @@ AllSizes adds its functionality to the photo page's new "Share this" menu:
 
 HOW DO YOU FIND IT?
 Any comments, feedback or bug reports? Please share your thoughts in the Flickr Hacks discussion thread:
-http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/page4/
+http://www.flickr.com/groups/flickrhacks/discuss/72157594303798688/
